@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/entities/npc.gd" id="1_npc"]
+
+[node name="NPC" type="CharacterBody2D"]
+script = ExtResource("1_npc")
+collision_layer = 2
+collision_mask = 3
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="Interactable" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 0
+
+[node name="InteractionShape" type="CollisionShape2D" parent="Interactable"]

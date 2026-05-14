@@ -1,0 +1,735 @@
+﻿{
+    "palette":  {
+                    "warm_gray":  "#737267",
+                    "muted_blue":  "#536577",
+                    "faded_green":  "#6d8d83",
+                    "tungsten_yellow":  "#efc36f",
+                    "rainy_asphalt":  "#4a4f55",
+                    "aged_concrete":  "#8a806a",
+                    "media_neon":  "#ffc4d6",
+                    "delivery_yellow":  "#e5bd3f"
+                },
+    "atlases":  {
+                    "tiles":  "res://assets/tiles/urban_life_tileset.png",
+                    "props":  "res://assets/sprites/urban_props_atlas.png",
+                    "characters":  "res://assets/sprites/characters_atlas.png",
+                    "icons":  "res://assets/ui/hud_icons.png"
+                },
+    "tile_regions":  [
+                         {
+                             "name":  "old_concrete",
+                             "x":  0,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "wet_asphalt",
+                             "x":  16,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "aged_floor",
+                             "x":  32,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "rain_puddle",
+                             "x":  48,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "alley_patch",
+                             "x":  64,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "office_tile",
+                             "x":  80,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "rental_floor",
+                             "x":  96,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "media_floor",
+                             "x":  112,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "metro_tile",
+                             "x":  0,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "warm_wall",
+                             "x":  16,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "store_wall",
+                             "x":  32,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "restaurant_wall",
+                             "x":  48,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "delivery_wall",
+                             "x":  64,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "media_wall",
+                             "x":  80,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "night_window",
+                             "x":  96,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "rain_overlay",
+                             "x":  112,
+                             "y":  16,
+                             "w":  16,
+                             "h":  16
+                         }
+                     ],
+    "prop_regions":  [
+                         {
+                             "name":  "scooter",
+                             "x":  0,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "rider_bag",
+                             "x":  32,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "vending_machine",
+                             "x":  64,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "utility_pole",
+                             "x":  96,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "ac_unit",
+                             "x":  128,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "laundry_rack",
+                             "x":  160,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "food_sign",
+                             "x":  192,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "metro_sign",
+                             "x":  224,
+                             "y":  0,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "ring_light",
+                             "x":  0,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "camera",
+                             "x":  32,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "product_boxes",
+                             "x":  64,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "office_desk",
+                             "x":  96,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "bed",
+                             "x":  128,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "fridge",
+                             "x":  160,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "rent_notice",
+                             "x":  192,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         },
+                         {
+                             "name":  "scooter",
+                             "x":  224,
+                             "y":  32,
+                             "w":  32,
+                             "h":  32
+                         }
+                     ],
+    "character_regions":  [
+                              {
+                                  "name":  "player_grad",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  0
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  0
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  0
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  0
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  0
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  0
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  0
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  0
+                                                                }
+                                             }
+                              },
+                              {
+                                  "name":  "landlord",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  32
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  32
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  32
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  32
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  32
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  32
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  32
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  32
+                                                                }
+                                             }
+                              },
+                              {
+                                  "name":  "shopkeeper",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  64
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  64
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  64
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  64
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  64
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  64
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  64
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  64
+                                                                }
+                                             }
+                              },
+                              {
+                                  "name":  "drifter_girl",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  96
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  96
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  96
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  96
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  96
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  96
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  96
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  96
+                                                                }
+                                             }
+                              },
+                              {
+                                  "name":  "delivery_rider",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  128
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  128
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  128
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  128
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  128
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  128
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  128
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  128
+                                                                }
+                                             }
+                              },
+                              {
+                                  "name":  "office_worker",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  160
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  160
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  160
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  160
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  160
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  160
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  160
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  160
+                                                                }
+                                             }
+                              },
+                              {
+                                  "name":  "streamer",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  192
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  192
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  192
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  192
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  192
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  192
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  192
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  192
+                                                                }
+                                             }
+                              },
+                              {
+                                  "name":  "metro_commuter",
+                                  "frames":  {
+                                                 "down_idle":  {
+                                                                   "y":  0,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  224
+                                                               },
+                                                 "down_walk":  {
+                                                                   "y":  32,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  224
+                                                               },
+                                                 "up_idle":  {
+                                                                 "y":  64,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  224
+                                                             },
+                                                 "up_walk":  {
+                                                                 "y":  96,
+                                                                 "w":  32,
+                                                                 "h":  32,
+                                                                 "x":  224
+                                                             },
+                                                 "left_idle":  {
+                                                                   "y":  128,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  224
+                                                               },
+                                                 "left_walk":  {
+                                                                   "y":  160,
+                                                                   "w":  32,
+                                                                   "h":  32,
+                                                                   "x":  224
+                                                               },
+                                                 "right_idle":  {
+                                                                    "y":  192,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  224
+                                                                },
+                                                 "right_walk":  {
+                                                                    "y":  224,
+                                                                    "w":  32,
+                                                                    "h":  32,
+                                                                    "x":  224
+                                                                }
+                                             }
+                              }
+                          ],
+    "icon_regions":  [
+                         {
+                             "name":  "money",
+                             "x":  0,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "energy",
+                             "x":  16,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "stress",
+                             "x":  32,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "rent",
+                             "x":  48,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "weather",
+                             "x":  64,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "work",
+                             "x":  80,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "delivery",
+                             "x":  96,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         },
+                         {
+                             "name":  "stream",
+                             "x":  112,
+                             "y":  0,
+                             "w":  16,
+                             "h":  16
+                         }
+                     ],
+    "usage_notes":  [
+                        "Use nearest-neighbor filtering and 1x/2x scale only.",
+                        "Keep neon accents sparse; use tungsten yellow and rainy blue as the primary mood colors.",
+                        "These assets are intentionally atlas-based so city_map, apartment, office, delivery station, media company, HUD, and NPCs can share them."
+                    ]
+}
