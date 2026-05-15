@@ -7,12 +7,12 @@ signal day_started(day: int)
 signal weather_changed(weather_key: String, weather_label: String)
 
 const SEGMENT_KEYS := ["morning", "afternoon", "evening", "late_night"]
-const SEGMENT_LABELS := ["Morning", "Afternoon", "Evening", "Late Night"]
+const SEGMENT_LABELS := ["上午", "下午", "晚上", "深夜"]
 const WEATHER_SEQUENCE := ["overcast", "rain", "clear", "rain", "overcast"]
 const WEATHER_LABELS := {
-	"clear": "Clear",
-	"overcast": "Overcast",
-	"rain": "Rain",
+	"clear": "晴天",
+	"overcast": "阴天",
+	"rain": "下雨",
 }
 
 @export var seconds_per_segment := 72.0
@@ -27,11 +27,16 @@ var stress := 22
 var rent_amount := 1200
 var rent_cycle_days := 7
 var next_rent_day := 7
+var housing_id := "urban_village"
+var housing_label := "城中村合租"
+var commute_fare := 6
+var commute_energy_cost := 4
+var commute_stress_gain := 2
 var segment_index := 0
 var elapsed_in_segment := 0.0
 var weather_index := 0
 var weather_key: String = WEATHER_SEQUENCE[0]
-var last_work_performance := "Not Worked"
+var last_work_performance := "未工作"
 var worked_this_day := false
 var time_paused := false
 var flow_multiplier := 1.0
@@ -65,7 +70,7 @@ func get_date_label() -> String:
 
 
 func get_weather_label() -> String:
-	return WEATHER_LABELS.get(weather_key, "Overcast")
+	return WEATHER_LABELS.get(weather_key, "阴天")
 
 
 func is_rainy() -> bool:
@@ -85,10 +90,16 @@ func get_status() -> Dictionary:
 		"stress": stress,
 		"max_stress": max_stress,
 		"rent_amount": rent_amount,
+		"housing_id": housing_id,
+		"housing_label": housing_label,
+		"commute_fare": commute_fare,
+		"commute_energy_cost": commute_energy_cost,
+		"commute_stress_gain": commute_stress_gain,
 		"rent_due_in": get_rent_due_in_days(),
 		"rent_overdue_days": get_rent_overdue_days(),
 		"rent_label": get_rent_label(),
 		"work_performance": last_work_performance,
+		"worked_this_day": worked_this_day,
 	}
 
 
@@ -118,10 +129,10 @@ func get_rent_overdue_days() -> int:
 func get_rent_label() -> String:
 	var due_in: int = get_rent_due_in_days()
 	if due_in > 0:
-		return "Due in %d day(s)" % due_in
+		return "%d天后到期" % due_in
 	if due_in == 0:
-		return "Due today"
-	return "Overdue %d day(s)" % abs(due_in)
+		return "今天到期"
+	return "已逾期%d天" % abs(due_in)
 
 
 func pay_rent() -> bool:
@@ -132,6 +143,17 @@ func pay_rent() -> bool:
 	relieve_stress(8)
 	_emit_status()
 	return true
+
+
+func apply_housing_contract(new_housing_id: String, label: String, new_rent_amount: int, new_commute_fare: int, new_commute_energy_cost: int, new_commute_stress_gain: int) -> void:
+	housing_id = new_housing_id
+	housing_label = label
+	rent_amount = max(1, new_rent_amount)
+	commute_fare = max(0, new_commute_fare)
+	commute_energy_cost = max(0, new_commute_energy_cost)
+	commute_stress_gain = max(0, new_commute_stress_gain)
+	next_rent_day = max(next_rent_day, day + 1)
+	_emit_status()
 
 
 func add_stress(amount: int) -> void:
@@ -181,7 +203,7 @@ func set_segment(segment_key: String) -> void:
 	time_segment_changed.emit(get_segment_key(), get_segment_label())
 
 
-func complete_work_shift(wage: int, energy_cost: int, arrive_segment: String, performance_label: String = "Steady") -> bool:
+func complete_work_shift(wage: int, energy_cost: int, arrive_segment: String, performance_label: String = "稳定") -> bool:
 	if not consume_energy(energy_cost):
 		return false
 	last_work_performance = performance_label
@@ -203,7 +225,7 @@ func sleep_to_next_day() -> void:
 	elapsed_in_segment = 0.0
 	energy = max_energy
 	stress = max(0, stress - 28)
-	last_work_performance = "Not Worked"
+	last_work_performance = "未工作"
 	worked_this_day = false
 	_advance_weather()
 	_apply_daily_rent_pressure()

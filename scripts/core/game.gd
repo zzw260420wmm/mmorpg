@@ -6,6 +6,8 @@ const ApartmentInteriorScript := preload("res://scripts/world/apartment_interior
 const OfficeInteriorScript := preload("res://scripts/world/office_interior.gd")
 const MediaCompanyInteriorScript := preload("res://scripts/world/media_company_interior.gd")
 const MetroStationInteriorScript := preload("res://scripts/world/metro_station_interior.gd")
+const WetMarketInteriorScript := preload("res://scripts/world/wet_market_interior.gd")
+const ClinicInteriorScript := preload("res://scripts/world/clinic_interior.gd")
 const PlayerScene := preload("res://scenes/player/player.tscn")
 const NpcScene := preload("res://scenes/npc/npc.tscn")
 const HudScene := preload("res://scenes/ui/hud.tscn")
@@ -16,6 +18,8 @@ var apartment: ApartmentInterior
 var office: OfficeInterior
 var media_company: MediaCompanyInterior
 var metro_station: MetroStationInterior
+var wet_market: WetMarketInterior
+var clinic: ClinicInterior
 var player: Player
 var hud: GameHUD
 var canvas_modulate: CanvasModulate
@@ -25,6 +29,10 @@ var last_street_position := Vector2.ZERO
 var office_return_position := Vector2(1112, 338)
 var media_return_position := Vector2(898, 242)
 var metro_return_position := Vector2(720, 410)
+var market_return_position := Vector2(278, 812)
+var clinic_return_position := Vector2(538, 772)
+var active_housing_id := "urban_village"
+var home_street_position := Vector2(152, 190)
 var delivery_state := "none"
 var delivery_orders_completed_today := 0
 var npc_relationships := {}
@@ -53,6 +61,7 @@ func _ready() -> void:
 	apartment.visible = false
 	apartment.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(apartment)
+	apartment.set_housing_variant(active_housing_id, "城中村合租")
 
 	office = OfficeInteriorScript.new()
 	office.name = "OfficeInterior"
@@ -72,6 +81,18 @@ func _ready() -> void:
 	metro_station.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(metro_station)
 
+	wet_market = WetMarketInteriorScript.new()
+	wet_market.name = "WetMarketInterior"
+	wet_market.visible = false
+	wet_market.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(wet_market)
+
+	clinic = ClinicInteriorScript.new()
+	clinic.name = "ClinicInterior"
+	clinic.visible = false
+	clinic.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(clinic)
+
 	player = PlayerScene.instantiate() as Player
 	player.name = "Player"
 	player.global_position = city_map.get_player_spawn()
@@ -86,6 +107,8 @@ func _ready() -> void:
 	_set_collision_tree_enabled(office, false)
 	_set_collision_tree_enabled(media_company, false)
 	_set_collision_tree_enabled(metro_station, false)
+	_set_collision_tree_enabled(wet_market, false)
+	_set_collision_tree_enabled(clinic, false)
 
 	hud = HudScene.instantiate() as GameHUD
 	add_child(hud)
@@ -115,10 +138,26 @@ func show_dialogue(speaker: String, lines: Array) -> void:
 	hud.show_dialogue(speaker, lines)
 
 
+func enter_apartment_from(source: Node) -> void:
+	if active_housing_id != "urban_village":
+		var source_id := ""
+		if source != null:
+			var interactable_id: Variant = source.get("interactable_id")
+			if interactable_id is String:
+				source_id = interactable_id
+		if source_id == "rental_door":
+			show_dialogue("旧出租屋", [
+				"你已经从这里搬走了。",
+				"现在的家在手机“城”里能看到，回去会从新的家门口出现。",
+			])
+			return
+	enter_apartment()
+
+
 func open_shop(source: Node) -> void:
 	player.set_controls_enabled(false)
 	time_manager.set_time_paused(true)
-	var shop_title := "Corner Shop"
+	var shop_title := "街角小店"
 	var source_id := ""
 	if source != null:
 		var display_name: Variant = source.get("display_name")
@@ -215,6 +254,46 @@ func enter_metro_station() -> void:
 	_update_time_flow()
 
 
+func enter_wet_market() -> void:
+	market_return_position = player.global_position + Vector2(0, 20)
+	current_location = "wet_market"
+	city_map.visible = false
+	city_map.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(city_map, false)
+	for npc in npcs:
+		npc.visible = false
+		npc.process_mode = Node.PROCESS_MODE_DISABLED
+		_set_collision_tree_enabled(npc, false)
+	wet_market.visible = true
+	wet_market.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(wet_market, true)
+	player.global_position = wet_market.get_player_spawn()
+	player.set_camera_limits(wet_market.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func enter_clinic() -> void:
+	clinic_return_position = player.global_position + Vector2(0, 20)
+	current_location = "clinic"
+	city_map.visible = false
+	city_map.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(city_map, false)
+	for npc in npcs:
+		npc.visible = false
+		npc.process_mode = Node.PROCESS_MODE_DISABLED
+		_set_collision_tree_enabled(npc, false)
+	clinic.visible = true
+	clinic.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(clinic, true)
+	player.global_position = clinic.get_player_spawn()
+	player.set_camera_limits(clinic.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
 func exit_apartment() -> void:
 	current_location = "street"
 	apartment.visible = false
@@ -227,7 +306,7 @@ func exit_apartment() -> void:
 		npc.visible = true
 		npc.process_mode = Node.PROCESS_MODE_INHERIT
 		_set_collision_tree_enabled(npc, true)
-	player.global_position = last_street_position
+	player.global_position = home_street_position
 	player.set_camera_limits(city_map.get_world_rect())
 	player.clear_interaction_focus()
 	hud.hide_prompt()
@@ -291,29 +370,73 @@ func exit_metro_station() -> void:
 	_update_time_flow()
 
 
+func exit_wet_market() -> void:
+	current_location = "street"
+	wet_market.visible = false
+	wet_market.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(wet_market, false)
+	city_map.visible = true
+	city_map.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(city_map, true)
+	for npc in npcs:
+		npc.visible = true
+		npc.process_mode = Node.PROCESS_MODE_INHERIT
+		_set_collision_tree_enabled(npc, true)
+	player.global_position = market_return_position
+	player.set_camera_limits(city_map.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func exit_clinic() -> void:
+	current_location = "street"
+	clinic.visible = false
+	clinic.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(clinic, false)
+	city_map.visible = true
+	city_map.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(city_map, true)
+	for npc in npcs:
+		npc.visible = true
+		npc.process_mode = Node.PROCESS_MODE_INHERIT
+		_set_collision_tree_enabled(npc, true)
+	player.global_position = clinic_return_position
+	player.set_camera_limits(city_map.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
 func request_commute_work() -> void:
 	player.set_controls_enabled(false)
-	var fare := 6
-	var commute_speaker := "Metro Gate" if current_location == "metro_station" else "Metro Entrance"
+	var fare: int = time_manager.commute_fare
+	var commute_speaker := "地铁闸机" if current_location == "metro_station" else "地铁口"
 	if time_manager.get_segment_key() in ["evening", "late_night"]:
 		hud.show_dialogue(commute_speaker, [
-			"Going to the office this late would just turn into overtime.",
-			"Leave it for tomorrow morning.",
+			"这个点再去公司，只会变成无意义的加班。",
+			"还是留到明天上午吧。",
+		])
+		return
+	if time_manager.energy < time_manager.commute_energy_cost:
+		hud.show_dialogue(commute_speaker, [
+			"你现在太累了，撑不过这一趟通勤。",
+			"先吃点东西，或者回去缓一缓。",
 		])
 		return
 	if not time_manager.spend(fare):
 		hud.show_dialogue(commute_speaker, [
-			"Your transit balance is too low.",
-			"You need 6 more to get through the gate.",
+			"交通卡余额不够。",
+			"进闸至少需要 %d 元。" % fare,
 		])
 		return
 
 	_apply_commute_time_jump()
 	office_return_position = Vector2(1112, 338)
 	enter_office(true)
-	hud.show_dialogue("Commute", [
+	hud.show_dialogue("通勤", [
 		_get_commute_line(),
-		"You made it to the office. Pick the job you want at the workstation.",
+		"你到了公司。去工位选择今天要做的工作。",
 	])
 
 
@@ -332,21 +455,21 @@ func request_job_work(job_id: String) -> void:
 			stress_gain += 8
 		else:
 			hud.show_dialogue(job_name, [
-				"It is too late to start this shift now.",
-				"Come back tomorrow morning or choose a night-friendly route.",
+				"现在开始这份班太晚了。",
+				"明天上午再来，或者去找适合夜间的工作。",
 			])
 			return
 	if time_manager.energy < energy_cost:
 		hud.show_dialogue(job_name, [
-			"You sit down at the workstation and realize you cannot focus.",
-			"Energy is too low. Eat something from the bag or rest first.",
+			"你坐到工位前，发现自己根本集中不了。",
+			"体力太低了。先吃点包里的东西，或者回去休息。",
 		])
 		return
 
 	var return_segment: String = "late_night" if job_id == "job_streamer" and time_manager.get_segment_key() == "evening" else "evening"
 	var worked: bool = time_manager.complete_work_shift(wage, energy_cost, return_segment, performance)
 	if not worked:
-		hud.show_dialogue(job_name, ["You are too tired to finish this work today."])
+		hud.show_dialogue(job_name, ["你今天太累了，撑不完这份工作。"])
 		return
 	time_manager.add_stress(stress_gain)
 	if current_location == "media_company":
@@ -357,7 +480,7 @@ func request_job_work(job_id: String) -> void:
 		exit_office()
 	hud.show_dialogue(job_name, [
 		str(work_result["work_line"]),
-		"Result %s. Pay +%d, energy -%d, stress +%d." % [performance, wage, energy_cost, stress_gain],
+		"结果：%s。收入 +%d，体力 -%d，压力 +%d。" % [performance, wage, energy_cost, stress_gain],
 		_get_work_return_line(job_id),
 	])
 
@@ -365,9 +488,9 @@ func request_fridge_food() -> void:
 	player.set_controls_enabled(false)
 	time_manager.recover_energy(8)
 	time_manager.relieve_stress(2)
-	hud.show_dialogue("Shared Fridge", [
-		"You dig out a simple leftover snack from the fridge.",
-		"It is not great, but it helps. Energy +8, stress -2.",
+	hud.show_dialogue("合租冰箱", [
+		"你从冰箱角落翻出一份简单剩饭。",
+		"不算好吃，但能顶一会儿。体力 +8，压力 -2。",
 	])
 
 
@@ -376,17 +499,17 @@ func request_fridge_food() -> void:
 func request_pay_rent() -> void:
 	player.set_controls_enabled(false)
 	if time_manager.pay_rent():
-		var timing_line := "Transfer complete. Rent -%d." % time_manager.rent_amount
+		var timing_line := "转账完成。房租 -%d。" % time_manager.rent_amount
 		if time_manager.get_rent_due_in_days() > time_manager.rent_cycle_days:
-			timing_line = "You paid early. Rent -%d." % time_manager.rent_amount
-		hud.show_dialogue("Rent Bill", [
+			timing_line = "你提前交了房租。房租 -%d。" % time_manager.rent_amount
+		hud.show_dialogue("房租单", [
 			timing_line,
-			"At least for the next few days, the landlord will stop knocking. Stress -8.",
+			"至少接下来几天，房东不会再敲门了。压力 -8。",
 		])
 	else:
-		hud.show_dialogue("Rent Bill", [
-			"You do not have enough money for the rent. Need %d." % time_manager.rent_amount,
-			"That means tomorrow probably needs to be a work day.",
+		hud.show_dialogue("房租单", [
+			"你的钱不够交房租，还需要 %d。" % time_manager.rent_amount,
+			"这意味着明天大概率又是工作日。",
 		])
 
 
@@ -395,22 +518,22 @@ func request_clinic_visit() -> void:
 	player.set_controls_enabled(false)
 	var fee := 48
 	if time_manager.energy >= 82 and time_manager.stress < 35:
-		hud.show_dialogue("Clinic", [
-			"You pause at the self-service kiosk and realize you can still push through today.",
-			"Better save the clinic fee for when you really need it.",
+		hud.show_dialogue("社区诊所", [
+			"你在自助机前停了一下，发现自己今天还能撑。",
+			"挂号费还是留到真正需要的时候吧。",
 		])
 		return
 	if not time_manager.spend(fee):
-		hud.show_dialogue("Clinic", [
-			"Registration costs %d." % fee,
-			"You do not have enough cash, so all you can do is sit down and breathe for a while.",
+		hud.show_dialogue("社区诊所", [
+			"挂号需要 %d 元。" % fee,
+			"你现金不够，只能在候诊椅上坐一会儿，慢慢喘口气。",
 		])
 		return
 	time_manager.recover_energy(16)
 	time_manager.relieve_stress(22)
-	hud.show_dialogue("Clinic", [
-		"The doctor says you are mostly exhausted and out of rhythm.",
-		"Fee %d. Energy +16, stress -22." % fee,
+	hud.show_dialogue("社区诊所", [
+		"医生说你主要是太累，作息也乱了。",
+		"挂号费 %d。体力 +16，压力 -22。" % fee,
 	])
 
 
@@ -420,31 +543,49 @@ func inspect_rental_agency(_source: Node) -> void:
 	player.set_controls_enabled(false)
 	var due_in := time_manager.get_rent_due_in_days()
 	var lines := [
-		"The rental board is full of tradeoffs: better commute, higher price; cheaper room, longer ride.",
+		"中介墙上贴满了取舍：通勤近的更贵，便宜的离地铁更远。",
 	]
 	if due_in < 0:
-		lines.append("Your current rent is already overdue, so moving is not realistic right now.")
+		lines.append("你现在的房租已经逾期，搬家也不太现实。")
 	elif due_in <= 2:
-		lines.append("With rent due soon, every extra expense feels heavier.")
+		lines.append("房租快到期了，每一笔额外开销都会更重。")
 	else:
-		lines.append("You have a little time before the next rent deadline closes in.")
-	lines.append("It is useful as a reminder: housing pressure shapes every other choice.")
-	hud.show_dialogue("Rental Agency", lines)
+		lines.append("离下次房租还有点时间，可以认真比较一下。")
+	lines.append("住房压力会改变之后每一天的通勤、体力和心情。")
+	hud.show_dialogue("房产中介", lines)
+
+
+func open_housing_agency(source: Node) -> void:
+	player.set_controls_enabled(false)
+	time_manager.set_time_paused(true)
+	var shop_title := "房产中介"
+	if source != null:
+		var display_name: Variant = source.get("display_name")
+		if display_name is String and not display_name.is_empty():
+			shop_title = display_name
+	hud.show_shop(shop_title, _get_shop_items("rental_agency"))
 
 
 
 
 func inspect_talent_apartment(_source: Node) -> void:
 	player.set_controls_enabled(false)
+	if active_housing_id == "talent_apartment":
+		enter_apartment()
+		show_dialogue("人才公寓", [
+			"你刷门禁进了现在的住处。",
+			"这里比城中村干净一些，但房租也更像一只计时器。",
+		])
+		return
 	var lines := [
-		"The talent apartment listings look better than your current place, but also much pricier.",
+		"人才公寓看起来比你现在住的地方体面不少，也贵不少。",
 	]
 	if time_manager.money >= time_manager.rent_amount:
-		lines.append("If your savings keep growing, upgrading later could make sense.")
+		lines.append("如果存款继续涨，之后升级住房也许说得过去。")
 	else:
-		lines.append("Right now the cheaper room and survivable rent matter more.")
-	lines.append("For this demo, it mostly reminds you what better housing would cost.")
-	hud.show_dialogue("Talent Apartment", lines)
+		lines.append("现在还是便宜房租和能活下去更重要。")
+	lines.append("如果在中介签了人才公寓合同，这里会变成你的新家门口。")
+	hud.show_dialogue("人才公寓", lines)
 
 
 
@@ -452,18 +593,18 @@ func inspect_talent_apartment(_source: Node) -> void:
 func inspect_office(_source: Node) -> void:
 	player.set_controls_enabled(false)
 	var lines := [
-		"The office tower lobby is clean, cold, and quietly demanding.",
+		"写字楼大堂干净、冷，安静得像在催你赶紧变专业。",
 	]
 	if time_manager.stress >= 70:
-		lines.append("Just seeing the building makes your shoulders tighten.")
+		lines.append("光是看到这栋楼，你肩膀就开始发紧。")
 	elif time_manager.stress >= 40:
-		lines.append("You can handle a shift, but it will still cost something.")
+		lines.append("你还能撑一份班，但肯定会付出点代价。")
 	else:
-		lines.append("You still have room to get useful work done today.")
-	lines.append("You head upstairs and can pick your work at the desk.")
+		lines.append("你今天还有余力把事情做完。")
+	lines.append("你上楼进公司，可以在工位选择今天的白领工作。")
 	office_return_position = player.global_position + Vector2(0, 20)
 	enter_office(false)
-	show_dialogue("Office Entrance", lines)
+	show_dialogue("写字楼入口", lines)
 
 
 
@@ -471,17 +612,17 @@ func inspect_office(_source: Node) -> void:
 func inspect_media_company(_source: Node) -> void:
 	player.set_controls_enabled(false)
 	var lines := [
-		"The media company floor is bright, polished, and a little exhausting.",
+		"传媒公司这一层很亮、很精致，也有点消耗人。",
 	]
 	if time_manager.get_segment_key() == "morning":
-		lines.append("The studio is waking up. This is a good time to prepare for creator work.")
+		lines.append("直播间刚醒，这是准备主播工作的好时间。")
 	elif time_manager.get_segment_key() == "late_night":
-		lines.append("At this hour the lights feel harsher than the pay is worth.")
+		lines.append("这个点的灯光比收入更刺眼。")
 	else:
-		lines.append("Streams and creator work trade money for energy and pressure.")
-	lines.append("You step inside and can choose whether to keep pushing tonight.")
+		lines.append("主播工作用体力和压力换钱，也用表情管理换奖励。")
+	lines.append("你走进去，可以决定今晚要不要继续硬撑。")
 	enter_media_company()
-	show_dialogue("Media Company", lines)
+	show_dialogue("传媒公司", lines)
 
 
 
@@ -489,18 +630,25 @@ func inspect_media_company(_source: Node) -> void:
 func inspect_metro_station(_source: Node) -> void:
 	player.set_controls_enabled(false)
 	var lines := [
-		"The station hums with turnstiles, footsteps, and train noise.",
+		"地铁站里全是闸机声、脚步声和远处进站的风。",
 	]
+	if active_housing_id == "far_suburb" and time_manager.get_segment_key() in ["evening", "late_night"]:
+		enter_apartment()
+		show_dialogue("远郊回家路", [
+			"你从这里转回远郊单间。",
+			"房租低一点，但每次回家都像多走了一截人生。",
+		])
+		return
 	if time_manager.get_segment_key() == "morning":
-		lines.append("Morning commuters are already packed in. It is the fastest way to reach work.")
+		lines.append("早高峰已经挤起来了，这是去公司的最快方式。")
 	elif time_manager.get_segment_key() == "evening":
-		lines.append("The evening rush makes every platform feel tighter.")
+		lines.append("晚高峰让每个平台都像变窄了一点。")
 	elif time_manager.get_segment_key() == "late_night":
-		lines.append("Service is thinning out. If you do not need to travel, going home is smarter.")
+		lines.append("班次已经变少了。没必要的话，回家更聪明。")
 	else:
-		lines.append("It is a reliable shortcut when you want to trade money for time.")
+		lines.append("当你想用钱换时间，地铁仍然是最稳定的捷径。")
 	enter_metro_station()
-	show_dialogue("Metro Station", lines)
+	show_dialogue("地铁站", lines)
 
 
 
@@ -508,36 +656,36 @@ func inspect_metro_station(_source: Node) -> void:
 func request_delivery_order() -> void:
 	player.set_controls_enabled(false)
 	if time_manager.get_segment_key() == "late_night":
-		hud.show_dialogue("Delivery Station", [
-			"No more orders are being assigned this late.",
-			"Come back earlier in the day.",
+		hud.show_dialogue("配送站", [
+			"这个点已经不派新单了。",
+			"白天早点再来。",
 		])
 		return
 	if delivery_state != "none":
-		hud.show_dialogue("Delivery Station", [
-			"You already have delivery work in progress.",
+		hud.show_dialogue("配送站", [
+			"你手上已经有一单了。",
 			_get_delivery_instruction(),
 		])
 		return
 	if delivery_orders_completed_today >= 1:
-		hud.show_dialogue("Delivery Station", [
-			"The demo currently limits delivery to one completed order per day.",
-			"Try a different job or rest and come back tomorrow.",
+		hud.show_dialogue("配送站", [
+			"当前 DEMO 每天只开放一单外卖配送。",
+			"可以试试别的工作，或者明天再来。",
 		])
 		return
 	if time_manager.energy < 32:
-		hud.show_dialogue("Delivery Station", [
-			"You are too tired to take a new route.",
-			"Eat something or rest first.",
+		hud.show_dialogue("配送站", [
+			"你太累了，不适合接新的路线。",
+			"先吃点东西或者回去休息。",
 		])
 		return
 
 	delivery_state = "accepted"
 	time_manager.consume_energy(6)
 	time_manager.add_stress(3)
-	hud.show_dialogue("Delivery Station", [
-		"You accepted a fresh order from the station board.",
-		"Energy -6, stress +3. Go pick up the food now.",
+	hud.show_dialogue("配送站", [
+		"你从站点板上接了一单外卖。",
+		"体力 -6，压力 +3。现在去取餐。",
 	])
 	_on_status_changed(time_manager.get_status())
 
@@ -547,23 +695,23 @@ func request_delivery_order() -> void:
 func request_delivery_pickup() -> void:
 	player.set_controls_enabled(false)
 	if delivery_state == "none":
-		hud.show_dialogue("Delivery Pickup", [
-			"You do not have an assigned order yet.",
-			"Accept one at the station first.",
+		hud.show_dialogue("取餐点", [
+			"你还没有接单。",
+			"先去配送站接一单。",
 		])
 		return
 	if delivery_state == "picked":
-		hud.show_dialogue("Delivery Pickup", [
-			"You already picked the order up.",
-			"Head to the customer and finish the route.",
+		hud.show_dialogue("取餐点", [
+			"你已经取过餐了。",
+			"去顾客那里完成配送。",
 		])
 		return
 
 	delivery_state = "picked"
 	time_manager.consume_energy(8)
-	hud.show_dialogue("Delivery Pickup", [
-		"The food is packed and ready to go.",
-		"Energy -8. Now head to the customer.",
+	hud.show_dialogue("取餐点", [
+		"餐已经打包好，可以走了。",
+		"体力 -8。现在去送餐。",
 	])
 	_on_status_changed(time_manager.get_status())
 
@@ -572,39 +720,39 @@ func request_delivery_pickup() -> void:
 func request_delivery_dropoff() -> void:
 	player.set_controls_enabled(false)
 	if delivery_state == "none":
-		hud.show_dialogue("Delivery Dropoff", [
-			"You do not have an active order right now.",
-			"Go accept one first, then pick it up before trying to drop it off.",
+		hud.show_dialogue("送达点", [
+			"你现在没有进行中的订单。",
+			"先接单、取餐，再来送达。",
 		])
 		return
 	if delivery_state != "picked":
-		hud.show_dialogue("Delivery Dropoff", [
-			"The order is not ready to deliver yet.",
-			"Pick up the food first, then head to the customer.",
+		hud.show_dialogue("送达点", [
+			"这单还没取餐，不能送达。",
+			"先去取餐，再来顾客这里。",
 		])
 		return
 
 	var reward := 58
 	var energy_cost := 14
 	var stress_gain := 8
-	var performance := "Steady"
-	var line := "You weave through the block and hand the order over before it goes cold."
+	var performance := "稳定"
+	var line := "你穿过街区，在饭菜变凉前把外卖送到。"
 	if time_manager.is_rainy():
 		reward += 18
 		stress_gain += 6
-		line = "Rain slows everyone down, but the extra rush fee makes the route worth it."
+		line = "雨天拖慢了所有人，但额外配送费让这趟还算值得。"
 	if time_manager.energy >= 70:
 		reward += 12
-		performance = "Focused"
+		performance = "专注"
 	elif time_manager.energy < 38:
 		reward -= 10
 		stress_gain += 4
-		performance = "Drained"
+		performance = "透支"
 
 	if not time_manager.consume_energy(energy_cost):
-		hud.show_dialogue("Delivery Dropoff", [
-			"You are too tired to finish the route safely.",
-			"Eat something or rest before taking the next order.",
+		hud.show_dialogue("送达点", [
+			"你太累了，已经不适合安全完成这趟路线。",
+			"先吃点东西或者休息一下。",
 		])
 		return
 
@@ -612,12 +760,12 @@ func request_delivery_dropoff() -> void:
 	delivery_orders_completed_today += 1
 	time_manager.add_money(max(35, reward))
 	time_manager.add_stress(stress_gain)
-	time_manager.record_work_performance("Delivery %s" % performance)
+	time_manager.record_work_performance("外卖%s" % performance)
 	time_manager.set_segment("evening")
-	hud.show_dialogue("Delivery Dropoff", [
+	hud.show_dialogue("送达点", [
 		line,
-		"Result %s. Pay +%d, energy -%d, stress +%d." % [performance, max(35, reward), energy_cost, stress_gain],
-		"The shift is over. You can recover, buy supplies, or head home.",
+		"结果：%s。收入 +%d，体力 -%d，压力 +%d。" % [performance, max(35, reward), energy_cost, stress_gain],
+		"这趟结束了。你可以恢复一下、买补给，或者回家。",
 	])
 
 
@@ -628,12 +776,12 @@ func request_sleep() -> void:
 	if current_location == "street":
 		enter_apartment()
 	var lines := [
-		"You finally get some sleep.",
-		"A new day starts with a little more room to plan.",
+		"你终于睡了一觉。",
+		"新的一天开始了，至少还有一点重新安排的空间。",
 	]
 	lines.append_array(pending_morning_notice)
 	pending_morning_notice.clear()
-	hud.show_dialogue("Sleep", lines)
+	hud.show_dialogue("睡觉", lines)
 
 
 
@@ -642,67 +790,67 @@ func _spawn_npcs() -> void:
 	var npc_data: Array[Dictionary] = [
 		{
 			"id": "landlord",
-			"name": "Landlord Chen",
+			"name": "陈房东",
 			"role": "landlord",
 			"position": Vector2(204, 214),
 			"palette": {"hair": Color("#3a3029"), "skin": Color("#c49167"), "shirt": Color("#8d7560")},
 			"routes": {
 				"morning": [Vector2(206, 214), Vector2(216, 258), Vector2(154, 258), Vector2(154, 214)],
-				"afternoon": [Vector2(188, 198), Vector2(236, 226), Vector2(218, 276)],
+				"afternoon": [Vector2(188, 198), Vector2(236, 226), Vector2(1300, 636), Vector2(218, 276)],
 				"evening": [Vector2(132, 204), Vector2(202, 204)],
 				"late_night": [Vector2(118, 190)],
 			},
 			"dialogue": {
-				"default": ["Rent is not just a number. It decides how much room you have to breathe."],
-				"morning": ["Morning. Check your wallet before the week runs away from you."],
-				"afternoon": ["The lane is loud today. Loud streets usually mean late rent."],
-				"evening": ["Back late again? Shanghai does not slow down for tired people."],
-				"late_night": ["Keep it quiet. The whole building is trying to sleep."],
+				"default": ["房租不只是数字，它决定你还有多少喘气的空间。"],
+				"morning": ["早。趁这一周还没跑远，先看看钱包。"],
+				"afternoon": ["今天弄堂很吵。街越吵，拖房租的人越多。"],
+				"evening": ["又这么晚回来？上海不会因为人累就慢下来。"],
+				"late_night": ["轻一点，整栋楼都在努力睡着。"],
 			},
 		},
 		{
 			"id": "shopkeeper",
-			"name": "Auntie Lin",
+			"name": "林阿姨",
 			"role": "shopkeeper",
 			"position": Vector2(612, 222),
 			"palette": {"hair": Color("#25262b"), "skin": Color("#d6a373"), "shirt": Color("#3f806f")},
 			"routes": {
-				"morning": [Vector2(612, 222), Vector2(704, 222)],
+				"morning": [Vector2(612, 222), Vector2(704, 222), Vector2(278, 790)],
 				"afternoon": [Vector2(636, 212), Vector2(710, 212), Vector2(710, 248)],
 				"evening": [Vector2(618, 228), Vector2(690, 228), Vector2(690, 252)],
 				"late_night": [Vector2(646, 214)],
 			},
 			"dialogue": {
-				"default": ["Snacks go into your bag now. Use them when the day starts biting."],
-				"morning": ["Soy milk is warm. Eggs are fresh. Your boss will not be either."],
-				"afternoon": ["The lunch rush is gone. Best time to buy without being squeezed."],
-				"evening": ["Convenience food is not romance, but it can save a night."],
-				"late_night": ["Only quick items left. Even the shelves look tired."],
+				"default": ["买的东西会先进包里，等日子咬人的时候再用。"],
+				"morning": ["豆浆是热的，鸡蛋是新鲜的，你老板可不一定。"],
+				"afternoon": ["午高峰过去了，现在买东西不用被人挤。"],
+				"evening": ["便利店食物不浪漫，但能救一个晚上。"],
+				"late_night": ["只剩快手东西了，连货架都显得累。"],
 			},
 		},
 		{
 			"id": "girl",
-			"name": "Mia",
+			"name": "小米",
 			"role": "drifter",
 			"position": Vector2(332, 260),
 			"palette": {"hair": Color("#241b22"), "skin": Color("#d8a17b"), "shirt": Color("#c55b70")},
 			"routes": {
 				"morning": [Vector2(170, 248), Vector2(380, 296), Vector2(704, 382)],
-				"afternoon": [Vector2(338, 286), Vector2(396, 332), Vector2(316, 360)],
-				"evening": [Vector2(716, 386), Vector2(532, 302), Vector2(658, 218)],
+				"afternoon": [Vector2(338, 286), Vector2(538, 750), Vector2(316, 360)],
+				"evening": [Vector2(716, 386), Vector2(1354, 310), Vector2(658, 218)],
 				"late_night": [Vector2(656, 238), Vector2(520, 268), Vector2(340, 354)],
 			},
 			"dialogue": {
-				"default": ["People here keep moving. If you stop too long, the city starts asking questions."],
-				"morning": ["I like the first train noise. It makes everyone pretend today has a plan."],
-				"afternoon": ["If your stress is high, walk a loop before buying more coffee."],
-				"evening": ["Neon makes the street look richer than any of us."],
-				"late_night": ["Late air is honest. It tells you exactly how tired you are."],
+				"default": ["这里的人一直在动。你停太久，城市就会开始问你问题。"],
+				"morning": ["我喜欢第一班地铁的声音，好像每个人今天都有计划。"],
+				"afternoon": ["压力高的时候，先走一圈，别急着再买咖啡。"],
+				"evening": ["霓虹灯会把街照得比我们任何人都富。"],
+				"late_night": ["深夜的空气很诚实，会直接告诉你有多累。"],
 			},
 		},
 		{
 			"id": "delivery_captain",
-			"name": "Captain Zhao",
+			"name": "赵队",
 			"role": "delivery_rider",
 			"position": Vector2(1044, 520),
 			"palette": {"hair": Color("#1f2428"), "skin": Color("#c49167"), "shirt": Color("#d29b2e")},
@@ -713,16 +861,16 @@ func _spawn_npcs() -> void:
 				"late_night": [Vector2(1052, 520), Vector2(1070, 520)],
 			},
 			"dialogue": {
-				"default": ["Orders pay fast, but the city charges energy first."],
-				"morning": ["Breakfast orders are short. Good warm-up if you can move."],
-				"afternoon": ["Rain turns every delivery into a negotiation with the road."],
-				"evening": ["Dinner peak is money, stress, and traffic all at once."],
-				"late_night": ["No heroic routes now. Take only what you can finish."],
+				"default": ["单子来钱快，但城市先收你的体力。"],
+				"morning": ["早餐单短，能跑的话适合热身。"],
+				"afternoon": ["下雨会让每一单都变成和路面的谈判。"],
+				"evening": ["晚高峰是钱、压力和车流一起砸过来。"],
+				"late_night": ["这个点别逞英雄，只接你能送完的。"],
 			},
 		},
 		{
 			"id": "streamer_npc",
-			"name": "Luna",
+			"name": "露娜",
 			"role": "streamer",
 			"position": Vector2(936, 220),
 			"palette": {"hair": Color("#2b2527"), "skin": Color("#d8a17b"), "shirt": Color("#c26c74")},
@@ -733,51 +881,51 @@ func _spawn_npcs() -> void:
 				"late_night": [Vector2(934, 224), Vector2(900, 224)],
 			},
 			"dialogue": {
-				"default": ["The camera likes confidence. The algorithm likes exhaustion."],
-				"morning": ["Morning streams are quiet, but quiet can be useful."],
-				"afternoon": ["Afternoon viewers tip better when the weather is bad."],
-				"evening": ["Prime time pays, then collects interest from your nerves."],
-				"late_night": ["End the stream before the stream ends you."],
+				"default": ["镜头喜欢自信，算法喜欢耗尽的人。"],
+				"morning": ["早场直播很安静，但安静有时候也有用。"],
+				"afternoon": ["天气差的时候，下午场观众反而更容易打赏。"],
+				"evening": ["黄金档会给钱，然后从你的神经上收利息。"],
+				"late_night": ["在直播结束你之前，先结束直播。"],
 			},
 		},
 		{
 			"id": "office_worker_npc",
-			"name": "Colleague Xu",
+			"name": "徐同事",
 			"role": "office_worker",
 			"position": Vector2(1088, 330),
 			"palette": {"hair": Color("#24292f"), "skin": Color("#d6a373"), "shirt": Color("#5d6870")},
 			"routes": {
 				"morning": [Vector2(716, 386), Vector2(1050, 330), Vector2(1138, 318)],
-				"afternoon": [Vector2(1138, 318), Vector2(1188, 516), Vector2(1112, 318)],
-				"evening": [Vector2(1112, 318), Vector2(1188, 516), Vector2(716, 386)],
+				"afternoon": [Vector2(1138, 318), Vector2(1188, 516), Vector2(1300, 636), Vector2(1112, 318)],
+				"evening": [Vector2(1112, 318), Vector2(1354, 310), Vector2(716, 386)],
 				"late_night": [Vector2(1138, 318), Vector2(1038, 336)],
 			},
 			"dialogue": {
-				"default": ["Office work is mostly choosing which pressure becomes visible."],
-				"morning": ["Arrive before the meeting and you look prepared. Arrive after and you become the agenda."],
-				"afternoon": ["After lunch, every spreadsheet starts looking like a weather report."],
-				"evening": ["Leaving on time is a skill. Not everyone survives learning it."],
-				"late_night": ["If you are still here, at least pretend the lights are stars."],
+				"default": ["白领工作大多是在选择哪种压力先暴露出来。"],
+				"morning": ["会前到显得你准备充分，会后到你就会变成议题。"],
+				"afternoon": ["午饭后，每张表格都像天气预报。"],
+				"evening": ["准点下班是一门技能，不是每个人都能学会。"],
+				"late_night": ["如果你还在这里，至少把灯当成星星吧。"],
 			},
 		},
 		{
 			"id": "metro_commuter_npc",
-			"name": "Commuter Sun",
+			"name": "孙通勤",
 			"role": "metro_commuter",
 			"position": Vector2(706, 386),
 			"palette": {"hair": Color("#3b302b"), "skin": Color("#c49167"), "shirt": Color("#6b7280")},
 			"routes": {
 				"morning": [Vector2(650, 398), Vector2(706, 386), Vector2(742, 390)],
-				"afternoon": [Vector2(704, 382), Vector2(652, 402), Vector2(704, 382)],
+				"afternoon": [Vector2(704, 382), Vector2(538, 750), Vector2(704, 382)],
 				"evening": [Vector2(742, 390), Vector2(706, 386), Vector2(650, 398)],
 				"late_night": [Vector2(704, 382), Vector2(718, 382)],
 			},
 			"dialogue": {
-				"default": ["The metro does not care about your plan. It only cares whether you made it to the gate."],
-				"morning": ["The first crowd is the most honest one. Everyone is half awake."],
-				"afternoon": ["Off-peak rides feel like borrowing time from the city."],
-				"evening": ["Evening trains carry every unfinished sentence home."],
-				"late_night": ["Last trains make people calculate their lives very quickly."],
+				"default": ["地铁不在乎你的计划，只在乎你有没有赶到闸机前。"],
+				"morning": ["第一波人最诚实，大家都还半醒。"],
+				"afternoon": ["非高峰坐车，像是从城市那里借到一点时间。"],
+				"evening": ["晚班车把所有没说完的话一起带回家。"],
+				"late_night": ["末班车会让人很快计算自己的人生。"],
 			},
 		},
 	]
@@ -793,8 +941,8 @@ func register_npc_talk(npc_id: String) -> String:
 	var current_value: int = int(npc_relationships.get(npc_id, 0))
 	if talked_today.has(npc_id):
 		if npc_id == "landlord":
-			return "We already talked today. Affinity %d. %s" % [current_value, _get_landlord_rent_line()]
-		return "We already talked today. Affinity %d." % current_value
+			return "今天已经聊过了。关系 %d。%s" % [current_value, _get_landlord_rent_line()]
+		return "今天已经聊过了。关系 %d。" % current_value
 
 	current_value += 1
 	npc_relationships[npc_id] = current_value
@@ -802,8 +950,8 @@ func register_npc_talk(npc_id: String) -> String:
 	time_manager.relieve_stress(3)
 	_update_npc_relationship_visual(npc_id)
 	if npc_id == "landlord":
-		return "Talked with the landlord. Affinity +1, stress -3. Affinity %d. %s" % [current_value, _get_landlord_rent_line()]
-	return "You shared a short street-side chat. Affinity +1, stress -3. Affinity %d." % current_value
+		return "和房东聊了几句。关系 +1，压力 -3。关系 %d。%s" % [current_value, _get_landlord_rent_line()]
+	return "你们在街边短短聊了一会儿。关系 +1，压力 -3。关系 %d。" % current_value
 
 func _on_player_interact_pressed(interactable: Node) -> void:
 	if hud != null and hud.is_blocking():
@@ -854,7 +1002,7 @@ func _store_inventory_item(item: Dictionary) -> void:
 
 	var new_item := {
 		"id": item_id,
-		"name": str(item.get("name", "Item")),
+		"name": str(item.get("name", "物品")),
 		"price": int(item.get("price", 0)),
 		"energy": int(item.get("energy", 0)),
 		"stress_relief": int(item.get("stress_relief", 0)),
@@ -880,6 +1028,10 @@ func _get_active_world_rect() -> Rect2:
 			return media_company.get_world_rect()
 		"metro_station":
 			return metro_station.get_world_rect()
+		"wet_market":
+			return wet_market.get_world_rect()
+		"clinic":
+			return clinic.get_world_rect()
 		_:
 			return city_map.get_world_rect()
 
@@ -904,8 +1056,14 @@ func _get_minimap_points() -> Array[Dictionary]:
 			points.append({"position": Vector2(640, 344), "color": Color("#a9d7ff"), "radius": 5.0})
 			points.append({"position": Vector2(454, 346), "color": Color("#b8d8c4"), "radius": 3.0})
 			points.append({"position": Vector2(640, 426), "color": Color("#e8c879"), "radius": 4.0})
+		"wet_market":
+			points.append({"position": Vector2(380, 582), "color": Color("#d8c886"), "radius": 5.0})
+			points.append({"position": Vector2(384, 636), "color": Color("#e8c879"), "radius": 4.0})
+		"clinic":
+			points.append({"position": Vector2(616, 562), "color": Color("#d8fff0"), "radius": 5.0})
+			points.append({"position": Vector2(704, 636), "color": Color("#e8c879"), "radius": 4.0})
 		_:
-			points.append({"position": Vector2(152, 190), "color": Color("#efc36f"), "radius": 4.0})
+			points.append({"position": home_street_position, "color": Color("#efc36f"), "radius": 4.0})
 			points.append({"position": Vector2(656, 202), "color": Color("#f5d37b"), "radius": 4.0})
 			points.append({"position": Vector2(720, 390), "color": Color("#a9d7ff"), "radius": 5.0})
 			points.append({"position": Vector2(1112, 318), "color": Color("#c7e7ff"), "radius": 5.0})
@@ -913,6 +1071,11 @@ func _get_minimap_points() -> Array[Dictionary]:
 			points.append({"position": Vector2(898, 222), "color": Color("#ffc4d6"), "radius": 4.0})
 			points.append({"position": Vector2(278, 790), "color": Color("#d8c886"), "radius": 4.0})
 			points.append({"position": Vector2(538, 750), "color": Color("#d8fff0"), "radius": 4.0})
+			points.append({"position": Vector2(1354, 310), "color": Color("#c7e7ff"), "radius": 4.0})
+			points.append({"position": Vector2(1300, 636), "color": Color("#e8c879"), "radius": 4.0})
+			points.append({"position": Vector2(560, 228), "color": Color("#c4d8a8"), "radius": 3.6})
+			points.append({"position": Vector2(900, 252), "color": Color("#a9d7ff"), "radius": 3.6})
+			points.append({"position": Vector2(1088, 366), "color": Color("#8fc4d4"), "radius": 3.8})
 			for npc in npcs:
 				if npc.visible:
 					points.append({"position": npc.global_position, "color": Color("#f4dcb1"), "radius": 2.6})
@@ -942,11 +1105,17 @@ func _get_minimap_objective() -> Dictionary:
 			return {"position": Vector2(246, 240)}
 		"metro_station":
 			return {"position": Vector2(640, 344)}
+		"wet_market":
+			return {"position": Vector2(380, 582)}
+		"clinic":
+			return {"position": Vector2(616, 562)}
 		_:
 			if time_manager.get_rent_due_in_days() <= 1:
-				return {"position": Vector2(152, 190)}
+				return {"position": home_street_position}
 			if time_manager.energy < 45:
-				return {"position": Vector2(656, 202)}
+				return {"position": Vector2(278, 790)}
+			if time_manager.stress >= 60:
+				return {"position": Vector2(538, 750)}
 			if not time_manager.worked_this_day and time_manager.get_segment_key() in ["morning", "afternoon"]:
 				return {"position": Vector2(720, 390)}
 			if not time_manager.worked_this_day and time_manager.get_segment_key() == "evening":
@@ -964,6 +1133,10 @@ func _on_time_segment_changed(segment_key: String, _segment_label: String) -> vo
 		media_company.set_time_segment(segment_key)
 	if metro_station != null:
 		metro_station.set_time_segment(segment_key)
+	if wet_market != null:
+		wet_market.set_time_segment(segment_key)
+	if clinic != null:
+		clinic.set_time_segment(segment_key)
 	for npc in npcs:
 		npc.set_time_segment(segment_key)
 	_apply_world_light(segment_key)
@@ -980,6 +1153,10 @@ func _on_weather_changed(weather_key: String, _weather_label: String) -> void:
 		media_company.set_weather(weather_key)
 	if metro_station != null:
 		metro_station.set_weather(weather_key)
+	if wet_market != null:
+		wet_market.set_weather(weather_key)
+	if clinic != null:
+		clinic.set_weather(weather_key)
 	_apply_world_light(time_manager.get_segment_key())
 	_on_status_changed(time_manager.get_status())
 
@@ -991,19 +1168,60 @@ func _on_day_started(_day: int) -> void:
 	pending_morning_notice.clear()
 	if time_manager.get_rent_overdue_days() > 0:
 		pending_morning_notice = [
-			"Rent is overdue. The landlord will not ignore it forever.",
-			"Overdue rent: %d day(s). Pay at the apartment door when you can." % time_manager.get_rent_overdue_days(),
+			"房租已经逾期了，房东不会一直当没看见。",
+			"逾期 %d 天。能交的时候，回家在房租单那里处理。" % time_manager.get_rent_overdue_days(),
 		]
 
 func _on_shop_item_selected(item: Dictionary) -> void:
+	if item.has("contract_id"):
+		_apply_housing_choice(item)
+		return
 	var price: int = int(item.get("price", 0))
 	if time_manager.spend(price):
 		_store_inventory_item(item)
 		hud.focus_inventory_tab()
-		hud.set_function_bar_message("%s added to bag. Use it from the bottom inventory bar when you need it." % item.get("name", "Item"))
-		hud.set_shop_message("%s bought. It now sits in your bag until you choose to use it." % item.get("name", "Item"))
+		hud.set_function_bar_message("%s 已放进包里，需要时点底部“包”使用。" % item.get("name", "物品"))
+		hud.set_shop_message("已购买 %s。效果会在你使用时生效。" % item.get("name", "物品"))
 	else:
-		hud.set_shop_message("Not enough money.")
+		hud.set_shop_message("钱不够。")
+
+
+func _apply_housing_choice(item: Dictionary) -> void:
+	var deposit: int = int(item.get("price", 0))
+	if not time_manager.spend(deposit):
+		hud.set_shop_message("押金和中介费不够。")
+		return
+	var contract_id := str(item.get("contract_id", "urban_village"))
+	time_manager.apply_housing_contract(
+		contract_id,
+		str(item.get("name", "租房合同")),
+		int(item.get("rent_amount", time_manager.rent_amount)),
+		int(item.get("commute_fare", time_manager.commute_fare)),
+		int(item.get("commute_energy_cost", time_manager.commute_energy_cost)),
+		int(item.get("commute_stress_gain", time_manager.commute_stress_gain))
+	)
+	_apply_housing_profile(contract_id, str(item.get("name", "租房合同")))
+	time_manager.relieve_stress(int(item.get("stress_relief", 0)))
+	_on_status_changed(time_manager.get_status())
+	hud.set_shop_message("已签约：%s。房租 %d，通勤 %d。" % [
+		item.get("name", "合同"),
+		int(item.get("rent_amount", time_manager.rent_amount)),
+		int(item.get("commute_fare", time_manager.commute_fare)),
+	])
+	hud.set_function_bar_message("已搬家：%s。家门口、屋内风格和通勤压力已更新。" % item.get("name", "合同"))
+
+
+func _apply_housing_profile(housing_id: String, display_name: String) -> void:
+	active_housing_id = housing_id
+	match housing_id:
+		"far_suburb":
+			home_street_position = Vector2(720, 430)
+		"talent_apartment":
+			home_street_position = Vector2(1354, 330)
+		_:
+			home_street_position = Vector2(152, 190)
+	apartment.set_housing_variant(active_housing_id, display_name)
+	last_street_position = home_street_position
 
 
 
@@ -1013,7 +1231,7 @@ func _on_inventory_item_used(index: int) -> void:
 	if index < 0 or index >= inventory_items.size():
 		return
 	var item: Dictionary = inventory_items[index]
-	var item_name: String = str(item.get("name", "Item"))
+	var item_name: String = str(item.get("name", "物品"))
 	var energy: int = int(item.get("energy", 0))
 	var stress_relief: int = int(item.get("stress_relief", 0))
 	if energy > 0:
@@ -1029,10 +1247,12 @@ func _on_inventory_item_used(index: int) -> void:
 	else:
 		inventory_items.remove_at(index)
 	_on_status_changed(time_manager.get_status())
-	var stress_text := "Stress -%d" % stress_relief
+	var stress_text := "压力 -%d" % stress_relief
 	if stress_relief < 0:
-		stress_text = "Stress +%d" % abs(stress_relief)
-	hud.set_function_bar_message("Used %s. Energy +%d, %s." % [item_name, energy, stress_text])
+		stress_text = "压力 +%d" % abs(stress_relief)
+	else:
+		stress_text = "压力 -%d" % stress_relief
+	hud.set_function_bar_message("使用了 %s。体力 +%d，%s。" % [item_name, energy, stress_text])
 
 
 func _resume_player_after_ui() -> void:
@@ -1053,16 +1273,19 @@ func _update_time_flow() -> void:
 			time_manager.set_flow_multiplier(1.35)
 		"metro_station":
 			time_manager.set_flow_multiplier(1.20)
+		"wet_market", "clinic":
+			time_manager.set_flow_multiplier(1.15)
 		_:
 			time_manager.set_flow_multiplier(1.0)
 
 
 func _apply_commute_time_jump() -> void:
+	time_manager.consume_energy(time_manager.commute_energy_cost)
+	time_manager.add_stress(time_manager.commute_stress_gain)
 	if time_manager.get_segment_key() == "morning":
 		time_manager.set_segment("afternoon")
 	elif time_manager.get_segment_key() == "afternoon":
-		time_manager.consume_energy(4)
-		time_manager.add_stress(2)
+		time_manager.add_stress(1)
 
 
 func _apply_world_light(segment_key: String) -> void:
@@ -1114,31 +1337,38 @@ func _set_collision_tree_enabled(root: Node, enabled: bool) -> void:
 func _get_shop_items(source_id: String) -> Array[Dictionary]:
 	if source_id == "wet_market":
 		return [
-			{"id": "wet_market_veg_egg", "name": "Vegetable Egg Pack", "price": 14, "energy": 16, "stress_relief": 2},
-			{"id": "wet_market_noodle_bowl", "name": "Noodle Bowl", "price": 18, "energy": 24, "stress_relief": 3},
-			{"id": "wet_market_fruit_bag", "name": "Fruit Bag", "price": 16, "energy": 12, "stress_relief": 6},
+			{"id": "wet_market_veg_egg", "name": "青菜鸡蛋包", "price": 14, "energy": 16, "stress_relief": 2},
+			{"id": "wet_market_noodle_bowl", "name": "热汤面", "price": 18, "energy": 24, "stress_relief": 3},
+			{"id": "wet_market_fruit_bag", "name": "水果袋", "price": 16, "energy": 12, "stress_relief": 6},
 		]
 	if source_id == "convenience_store":
 		return [
-			{"id": "store_rice_ball", "name": "Rice Ball", "price": 10, "energy": 12, "stress_relief": 1},
-			{"id": "store_coffee", "name": "Iced Coffee", "price": 12, "energy": 18, "stress_relief": -3},
-			{"id": "store_late_snack", "name": "Late Snack", "price": 22, "energy": 28, "stress_relief": 4},
+			{"id": "store_rice_ball", "name": "饭团", "price": 10, "energy": 12, "stress_relief": 1},
+			{"id": "store_coffee", "name": "冰咖啡", "price": 12, "energy": 18, "stress_relief": -3},
+			{"id": "store_late_snack", "name": "夜宵便当", "price": 22, "energy": 28, "stress_relief": 4},
+		]
+	if source_id == "rental_agency":
+		return [
+			{"id": "contract_urban_village", "contract_id": "urban_village", "name": "城中村合租", "price": 0, "rent_amount": 1200, "commute_fare": 6, "commute_energy_cost": 4, "commute_stress_gain": 2, "energy": 0, "stress_relief": 0},
+			{"id": "contract_far_suburb", "contract_id": "far_suburb", "name": "远郊单间", "price": 260, "rent_amount": 850, "commute_fare": 8, "commute_energy_cost": 8, "commute_stress_gain": 6, "energy": 0, "stress_relief": 0},
+			{"id": "contract_talent_apartment", "contract_id": "talent_apartment", "name": "人才公寓试住", "price": 520, "rent_amount": 1650, "commute_fare": 4, "commute_energy_cost": 2, "commute_stress_gain": 1, "energy": 0, "stress_relief": 6},
 		]
 	return [
-		{"id": "canteen_set", "name": "Canteen Set", "price": 26, "energy": 34, "stress_relief": 4},
-		{"id": "comfort_soup", "name": "Comfort Soup", "price": 32, "energy": 22, "stress_relief": 10},
-		{"id": "quick_lunch", "name": "Quick Lunch", "price": 20, "energy": 26, "stress_relief": 2},
+		{"id": "canteen_set", "name": "小饭馆套餐", "price": 26, "energy": 34, "stress_relief": 4},
+		{"id": "comfort_soup", "name": "暖汤", "price": 32, "energy": 22, "stress_relief": 10},
+		{"id": "quick_lunch", "name": "快餐盒饭", "price": 20, "energy": 26, "stress_relief": 2},
 	]
 
 func _get_commute_line() -> String:
+	var pressure := " 车费 %d，体力 -%d，压力 +%d。" % [time_manager.commute_fare, time_manager.commute_energy_cost, time_manager.commute_stress_gain]
 	if time_manager.is_rainy():
-		return "You squeeze into the metro with damp sleeves and arrive near the office forty minutes later."
-	return "You tap through the gate and ride the metro to the office district."
+		return "你带着潮湿的袖口挤进地铁，四十分钟后到达公司附近。%s" % pressure
+	return "你刷卡进闸，坐地铁穿过城市去上班。%s" % pressure
 
 func _get_work_return_line(job_id: String) -> String:
 	if job_id == "job_streamer":
-		return "You step out of the studio with the ring lights still floating in your eyes."
-	return "You walk back out of the office tower with the city lights already turning on."
+		return "你走出直播间时，眼前还晃着环形灯的白光。"
+	return "你走出写字楼，城市的灯已经一盏盏亮起来。"
 
 func _calculate_work_result(job_id: String = "job_operations") -> Dictionary:
 	var job: Dictionary = _get_job_profile(job_id)
@@ -1146,19 +1376,19 @@ func _calculate_work_result(job_id: String = "job_operations") -> Dictionary:
 	var energy_cost: int = int(job["energy_cost"])
 	var wage: int = int(job["base_wage"])
 	var stress_gain: int = int(job["stress_gain"])
-	var performance: String = "Steady"
+	var performance: String = "稳定"
 	var work_line: String = str(job["work_line"])
 
 	if start_energy >= 86:
-		performance = "Focused"
+		performance = "专注"
 		wage += int(job["high_energy_bonus"])
 		energy_cost += 6
 		stress_gain += 3
 	elif start_energy >= 58:
-		performance = "Steady"
+		performance = "稳定"
 		wage += int(job["stable_bonus"])
 	elif start_energy < 42:
-		performance = "Drained"
+		performance = "透支"
 		wage -= int(job["low_energy_penalty"])
 		energy_cost -= 4
 		stress_gain += 6
@@ -1167,15 +1397,15 @@ func _calculate_work_result(job_id: String = "job_operations") -> Dictionary:
 		work_line = str(job["rain_line"])
 		wage -= 10
 		stress_gain += 5
-		if performance == "Focused":
-			performance = "Steady"
-		elif performance == "Steady":
-			performance = "Drained"
+		if performance == "专注":
+			performance = "稳定"
+		elif performance == "稳定":
+			performance = "透支"
 
 	if job_id == "job_streamer" and time_manager.get_segment_key() == "afternoon":
 		wage += 30
 		stress_gain += 4
-		work_line = "%s The afternoon stream pulled in extra attention." % work_line
+		work_line = "%s 下午场直播多了一些流量。" % work_line
 
 	return {
 		"wage": max(120, wage),
@@ -1193,51 +1423,51 @@ func _get_job_profile(job_id: String) -> Dictionary:
 	match job_id:
 		"job_developer":
 			return {
-				"name": "Software Developer",
+				"name": "软件开发",
 				"base_wage": 240,
 				"energy_cost": 38,
 				"stress_gain": 16,
 				"high_energy_bonus": 80,
 				"stable_bonus": 30,
 				"low_energy_penalty": 50,
-				"work_line": "You spend the shift fixing a stubborn production bug and reviewing merge requests.",
-				"rain_line": "Rain drums against the office windows while you chase a production bug through old logs.",
+				"work_line": "你把一整个班次花在修线上问题和看合并请求上。",
+				"rain_line": "雨敲着办公室玻璃，你在旧日志里追一个线上 bug。",
 			}
 		"job_sales":
 			return {
-				"name": "Sales Specialist",
+				"name": "销售专员",
 				"base_wage": 210,
 				"energy_cost": 36,
 				"stress_gain": 22,
 				"high_energy_bonus": 95,
 				"stable_bonus": 35,
 				"low_energy_penalty": 55,
-				"work_line": "You juggle client calls, demo notes, and a manager who keeps asking for one more follow-up.",
-				"rain_line": "The rain slows every client visit, and each late reply makes the sales board feel heavier.",
+				"work_line": "你一边打客户电话，一边补演示记录，还要应付经理不断追加的跟进。",
+				"rain_line": "雨天拖慢了每一次客户拜访，每条迟到的回复都让销售表更沉。",
 			}
 		"job_streamer":
 			return {
-				"name": "Livestream Shift",
+				"name": "主播班",
 				"base_wage": 190,
 				"energy_cost": 32,
 				"stress_gain": 24,
 				"high_energy_bonus": 110,
 				"stable_bonus": 35,
 				"low_energy_penalty": 65,
-				"work_line": "You keep smiling under hot lights while chat demands energy you do not really have.",
-				"rain_line": "Rain traps more viewers indoors, but keeping them engaged takes everything you have left.",
+				"work_line": "你在发烫的灯光下保持笑容，弹幕要的活力其实你已经不太有了。",
+				"rain_line": "下雨让更多观众留在室内，但留住他们几乎耗光你剩下的力气。",
 			}
 		_:
 			return {
-				"name": "Operations Assistant",
+				"name": "运营助理",
 				"base_wage": 220,
 				"energy_cost": 34,
 				"stress_gain": 14,
 				"high_energy_bonus": 45,
 				"stable_bonus": 15,
 				"low_energy_penalty": 35,
-				"work_line": "You process vendor messages, reconcile forms, and keep the office machine from rattling apart.",
-				"rain_line": "Rain delays deliveries, so the operations inbox becomes a little weather system of its own.",
+				"work_line": "你处理供应商消息、核对表格，努力让办公室这台机器别散架。",
+				"rain_line": "雨天拖慢了配送，运营收件箱像自己长出了一套天气系统。",
 			}
 
 func _update_npc_relationship_visual(npc_id: String) -> void:
@@ -1250,14 +1480,14 @@ func _update_npc_relationship_visual(npc_id: String) -> void:
 func _get_landlord_rent_line() -> String:
 	var due_in: int = time_manager.get_rent_due_in_days()
 	if due_in > 0:
-		return "Rent is due in %d day(s). Keep enough cash ready." % due_in
+		return "房租还有 %d 天到期，记得留现金。" % due_in
 	if due_in == 0:
-		return "Rent is due today. Pay before sleep if you can."
-	return "Rent is overdue by %d day(s). The pressure will keep growing." % abs(due_in)
+		return "房租今天到期，睡前能交就交。"
+	return "房租已经逾期 %d 天，压力会继续涨。" % abs(due_in)
 
 func _get_delivery_instruction() -> String:
 	if delivery_state == "accepted":
-		return "Order accepted. Go to the pickup counter at the delivery station."
+		return "已接单。去取餐点拿餐。"
 	if delivery_state == "picked":
-		return "Food picked up. Ride to the drop-off marker before the city eats your bonus."
-	return "Talk to Captain Zhao at the delivery station to accept a route."
+		return "已取餐。去送达点，别让城市吃掉你的奖金。"
+	return "去配送站找赵队接一条路线。"

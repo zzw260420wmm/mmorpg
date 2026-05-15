@@ -143,9 +143,9 @@ func _create_interactables() -> void:
 	var origin := get_world_rect().position
 	_add_interactable({
 		"id": "job_streamer",
-		"name": "Stream Desk",
+		"name": "直播间机位",
 		"kind": "job",
-		"prompt": "Press E to start streaming",
+		"prompt": "按 E 开始直播",
 		"position": origin + Vector2(106, 188),
 		"size": Vector2(92, 34),
 		"fill_color": Color(1.0, 0.45, 0.52, 0.18),
@@ -153,9 +153,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "media_exit",
-		"name": "Media Company Exit",
+		"name": "传媒公司出口",
 		"kind": "exit_media_company",
-		"prompt": "Press E to leave the media company",
+		"prompt": "按 E 离开传媒公司",
 		"position": origin + Vector2(210, 284),
 		"size": Vector2(74, 28),
 		"fill_color": Color(0.75, 0.64, 0.80, 0.18),

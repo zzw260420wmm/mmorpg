@@ -36,17 +36,24 @@ var minimap_panel: PanelContainer
 var minimap_title: Label
 var minimap_canvas: Control
 var function_bar_panel: PanelContainer
+var function_detail_panel: PanelContainer
 var function_bar_title: Label
 var function_bar_hint: Label
 var function_bar_message: Label
 var character_tab_button: Button
 var inventory_tab_button: Button
+var city_tab_button: Button
+var tasks_tab_button: Button
 var character_view: VBoxContainer
 var character_summary_label: Label
 var character_status_label: Label
 var inventory_view: VBoxContainer
 var inventory_empty_label: Label
 var inventory_list: VBoxContainer
+var city_view: VBoxContainer
+var city_summary_label: Label
+var tasks_view: VBoxContainer
+var tasks_summary_label: Label
 
 var dialogue_lines: Array = []
 var dialogue_index := 0
@@ -61,7 +68,7 @@ var minimap_objective_active := false
 var minimap_objective_position := Vector2.ZERO
 var function_status: Dictionary = {}
 var function_inventory: Array[Dictionary] = []
-var current_function_tab := "attributes"
+var current_function_tab := "closed"
 var function_bar_notice := ""
 
 
@@ -73,29 +80,29 @@ func _ready() -> void:
 
 func update_status(status: Dictionary) -> void:
 	var date_text: String = str(status.get("date", "6/1"))
-	var segment_text: String = str(status.get("segment", "Morning"))
-	var weather_text: String = str(status.get("weather", "Clear"))
+	var segment_text: String = str(status.get("segment", "上午"))
+	var weather_text: String = str(status.get("weather", "晴天"))
 	var money: int = int(status.get("money", 0))
 	var energy: int = int(status.get("energy", 0))
 	var max_energy: int = int(status.get("max_energy", 100))
 	var stress: int = int(status.get("stress", 0))
 	var max_stress: int = int(status.get("max_stress", 100))
-	var rent_text: String = str(status.get("rent_label", "7 days to rent"))
+	var rent_text: String = str(status.get("rent_label", "7天后到期"))
 	var delivery_state: String = str(status.get("delivery_state", "none"))
 
 	date_label.text = date_text
 	segment_label.text = segment_text
-	weather_label.text = "Weather %s" % weather_text
-	money_label.text = "  Cash %d" % money
-	energy_label.text = "  Energy %d/%d" % [energy, max_energy]
-	stress_label.text = "  Stress %d/%d" % [stress, max_stress]
+	weather_label.text = "天气 %s" % weather_text
+	money_label.text = "  现金 %d" % money
+	energy_label.text = "  体力 %d/%d" % [energy, max_energy]
+	stress_label.text = "  压力 %d/%d" % [stress, max_stress]
 	if delivery_state == "accepted":
-		work_label.text = "  Delivery Pick up order"
+		work_label.text = "  外卖 去取餐"
 	elif delivery_state == "picked":
-		work_label.text = "  Delivery On the way"
+		work_label.text = "  外卖 配送中"
 	else:
-		work_label.text = "  Work %s" % str(status.get("work_performance", "Off duty"))
-	rent_label.text = "  Rent %s" % rent_text
+		work_label.text = "  工作 %s" % str(status.get("work_performance", "未工作"))
+	rent_label.text = "  房租 %s" % rent_text
 	goals_label.text = _build_goals_text(status)
 
 
@@ -136,7 +143,7 @@ func update_minimap(scene_key: String, world_rect: Rect2, player_position: Vecto
 
 
 func show_prompt(text: String) -> void:
-	prompt_label.text = text
+	prompt_label.text = _zh_prompt(text)
 	prompt_panel.visible = true
 
 
@@ -165,11 +172,14 @@ func show_shop(title: String, items: Array[Dictionary]) -> void:
 		var item_copy: Dictionary = item.duplicate()
 		current_shop_items.append(item_copy)
 	shop_title.text = title
-	shop_message_label.text = "Press 1-9 to buy. Press E or Esc to close."
+		shop_message_label.text = "按 1-9 购买。按 E 或 Esc 关闭。"
 	var lines := PackedStringArray()
 	for i in range(current_shop_items.size()):
 		var item: Dictionary = current_shop_items[i]
-		lines.append("%d  %s  $%d  Energy +%d" % [i + 1, str(item.get("name", "Item")), int(item.get("price", 0)), int(item.get("energy", 0))])
+		if item.has("contract_id"):
+			lines.append("%d  %s  手续费 %d  房租 %d  通勤 %d" % [i + 1, str(item.get("name", "合同")), int(item.get("price", 0)), int(item.get("rent_amount", 0)), int(item.get("commute_fare", 0))])
+		else:
+			lines.append("%d  %s  %d元  体力 +%d" % [i + 1, str(item.get("name", "物品")), int(item.get("price", 0)), int(item.get("energy", 0))])
 	shop_items_label.text = "\n".join(lines)
 	shop_panel.visible = true
 	dialog_panel.visible = false
@@ -207,6 +217,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if index >= 0 and index < current_shop_items.size():
 			get_viewport().set_input_as_handled()
 			shop_item_selected.emit(current_shop_items[index])
+	elif event.is_action_pressed("ui_cancel") and function_detail_panel != null and function_detail_panel.visible:
+		get_viewport().set_input_as_handled()
+		_close_function_panel()
 	elif current_function_tab == "inventory" and event is InputEventKey and event.pressed and not event.echo:
 		var inventory_key_event := event as InputEventKey
 		var inventory_index := -1
@@ -228,14 +241,14 @@ func _advance_dialogue() -> void:
 
 func _refresh_dialogue_line() -> void:
 	dialog_label.text = str(dialogue_lines[dialogue_index])
-	dialog_hint.text = "Press E to continue" if dialogue_index < dialogue_lines.size() - 1 else "Press Esc to close"
+	dialog_hint.text = "按 E 继续" if dialogue_index < dialogue_lines.size() - 1 else "按 Esc 关闭"
 
 
 func _update_dialog_hint() -> void:
 	if dialogue_index < dialogue_lines.size() - 1:
-		dialog_hint.text = "Press E to continue, Esc to close"
+		dialog_hint.text = "按 E 继续，Esc 关闭"
 	else:
-		dialog_hint.text = "Press Esc to close"
+		dialog_hint.text = "按 Esc 关闭"
 
 
 func _close_dialogue() -> void:
@@ -289,13 +302,13 @@ func _build_status_panel(root: Control) -> void:
 	status_margin.add_child(status_content)
 
 	date_label = _make_label("6/1", 15, Color("#3b2d23"))
-	segment_label = _make_label("Morning", 14, Color("#68442f"))
-	weather_label = _make_label("Weather Clear", 12, Color("#53666f"))
-	money_label = _make_label("  Cash 2600", 14, Color("#2f5d45"))
-	energy_label = _make_label("  Energy 78/100", 12, Color("#5b5047"))
-	stress_label = _make_label("  Stress 22/100", 12, Color("#8a4b42"))
-	work_label = _make_label("  Work Off duty", 12, Color("#6f5a48"))
-	rent_label = _make_label("  Rent 7 days left", 12, Color("#7b4f30"))
+	segment_label = _make_label("上午", 14, Color("#68442f"))
+	weather_label = _make_label("天气 晴天", 12, Color("#53666f"))
+	money_label = _make_label("  现金 2600", 14, Color("#2f5d45"))
+	energy_label = _make_label("  体力 78/100", 12, Color("#5b5047"))
+	stress_label = _make_label("  压力 22/100", 12, Color("#8a4b42"))
+	work_label = _make_label("  工作 未工作", 12, Color("#6f5a48"))
+	rent_label = _make_label("  房租 7天后到期", 12, Color("#7b4f30"))
 	status_content.add_child(date_label)
 	status_content.add_child(segment_label)
 	status_content.add_child(weather_label)
@@ -326,7 +339,7 @@ func _build_goals_panel(root: Control) -> void:
 	goals_margin.add_theme_constant_override("margin_bottom", 8)
 	goals_panel.add_child(goals_margin)
 
-	goals_label = _make_label("Today\n- Go to work\n- Eat something\n- Get home", 11, Color("#ffe9b8"))
+	goals_label = _make_label("今日\n- 去工作\n- 吃点东西\n- 回家睡觉", 11, Color("#ffe9b8"))
 	goals_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	goals_margin.add_child(goals_label)
 
@@ -342,8 +355,8 @@ func _build_prompt_panel(root: Control) -> void:
 	prompt_panel.anchor_bottom = 1.0
 	prompt_panel.offset_left = -150
 	prompt_panel.offset_right = 150
-	prompt_panel.offset_top = -230
-	prompt_panel.offset_bottom = -194
+	prompt_panel.offset_top = -116
+	prompt_panel.offset_bottom = -80
 	root.add_child(prompt_panel)
 
 	var prompt_margin := MarginContainer.new()
@@ -353,7 +366,7 @@ func _build_prompt_panel(root: Control) -> void:
 	prompt_margin.add_theme_constant_override("margin_bottom", 6)
 	prompt_panel.add_child(prompt_margin)
 
-	prompt_label = _make_label("Press E to interact", 13, Color("#ffe6a3"))
+	prompt_label = _make_label("按 E 互动", 13, Color("#ffe6a3"))
 	prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt_margin.add_child(prompt_label)
 
@@ -379,7 +392,7 @@ func _build_minimap(root: Control) -> void:
 	minimap_box.add_theme_constant_override("separation", 6)
 	minimap_margin.add_child(minimap_box)
 
-	minimap_title = _make_label("CITY BLOCK", 13, Color("#f7e3b2"))
+	minimap_title = _make_label("上海街区", 13, Color("#f7e3b2"))
 	minimap_box.add_child(minimap_title)
 
 	minimap_canvas = Control.new()
@@ -395,57 +408,111 @@ func _build_function_bar(root: Control) -> void:
 	function_bar_panel = PanelContainer.new()
 	function_bar_panel.name = "FunctionBarPanel"
 	function_bar_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.14, 0.12, 0.10, 0.92), Color("#d8b46f")))
-	function_bar_panel.anchor_left = 0.0
-	function_bar_panel.anchor_right = 1.0
+	function_bar_panel.anchor_left = 0.5
+	function_bar_panel.anchor_right = 0.5
 	function_bar_panel.anchor_top = 1.0
 	function_bar_panel.anchor_bottom = 1.0
-	function_bar_panel.offset_left = 12
-	function_bar_panel.offset_right = -12
-	function_bar_panel.offset_top = -182
+	function_bar_panel.offset_left = -132
+	function_bar_panel.offset_right = 132
+	function_bar_panel.offset_top = -62
 	function_bar_panel.offset_bottom = -12
 	root.add_child(function_bar_panel)
 
 	var function_margin := MarginContainer.new()
-	function_margin.add_theme_constant_override("margin_left", 12)
-	function_margin.add_theme_constant_override("margin_right", 12)
-	function_margin.add_theme_constant_override("margin_top", 10)
-	function_margin.add_theme_constant_override("margin_bottom", 10)
+	function_margin.add_theme_constant_override("margin_left", 8)
+	function_margin.add_theme_constant_override("margin_right", 8)
+	function_margin.add_theme_constant_override("margin_top", 6)
+	function_margin.add_theme_constant_override("margin_bottom", 6)
 	function_bar_panel.add_child(function_margin)
 
+	var dock_row := HBoxContainer.new()
+	dock_row.add_theme_constant_override("separation", 8)
+	function_margin.add_child(dock_row)
+
+	character_tab_button = Button.new()
+	character_tab_button.text = "人"
+	character_tab_button.toggle_mode = true
+	character_tab_button.custom_minimum_size = Vector2(52, 38)
+	character_tab_button.tooltip_text = "角色状态"
+	character_tab_button.pressed.connect(func() -> void:
+		_set_function_tab("attributes")
+	)
+	dock_row.add_child(character_tab_button)
+
+	inventory_tab_button = Button.new()
+	inventory_tab_button.text = "包"
+	inventory_tab_button.toggle_mode = true
+	inventory_tab_button.custom_minimum_size = Vector2(52, 38)
+	inventory_tab_button.tooltip_text = "背包"
+	inventory_tab_button.pressed.connect(func() -> void:
+		_set_function_tab("inventory")
+	)
+	dock_row.add_child(inventory_tab_button)
+
+	city_tab_button = Button.new()
+	city_tab_button.text = "城"
+	city_tab_button.toggle_mode = true
+	city_tab_button.custom_minimum_size = Vector2(52, 38)
+	city_tab_button.tooltip_text = "城市地图"
+	city_tab_button.pressed.connect(func() -> void:
+		_set_function_tab("city")
+	)
+	dock_row.add_child(city_tab_button)
+
+	tasks_tab_button = Button.new()
+	tasks_tab_button.text = "事"
+	tasks_tab_button.toggle_mode = true
+	tasks_tab_button.custom_minimum_size = Vector2(52, 38)
+	tasks_tab_button.tooltip_text = "今日事项"
+	tasks_tab_button.pressed.connect(func() -> void:
+		_set_function_tab("tasks")
+	)
+	dock_row.add_child(tasks_tab_button)
+
+	function_detail_panel = PanelContainer.new()
+	function_detail_panel.name = "PhoneDetailPanel"
+	function_detail_panel.visible = false
+	function_detail_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.16, 0.13, 0.10, 0.96), Color("#d8b46f")))
+	function_detail_panel.anchor_left = 0.5
+	function_detail_panel.anchor_right = 0.5
+	function_detail_panel.anchor_top = 1.0
+	function_detail_panel.anchor_bottom = 1.0
+	function_detail_panel.offset_left = -196
+	function_detail_panel.offset_right = 196
+	function_detail_panel.offset_top = -242
+	function_detail_panel.offset_bottom = -74
+	root.add_child(function_detail_panel)
+
+	var detail_margin := MarginContainer.new()
+	detail_margin.add_theme_constant_override("margin_left", 12)
+	detail_margin.add_theme_constant_override("margin_right", 12)
+	detail_margin.add_theme_constant_override("margin_top", 10)
+	detail_margin.add_theme_constant_override("margin_bottom", 10)
+	function_detail_panel.add_child(detail_margin)
+
 	var function_box := VBoxContainer.new()
-	function_box.add_theme_constant_override("separation", 8)
-	function_margin.add_child(function_box)
+	function_box.add_theme_constant_override("separation", 7)
+	detail_margin.add_child(function_box)
 
 	var header_row := HBoxContainer.new()
 	header_row.add_theme_constant_override("separation", 8)
 	function_box.add_child(header_row)
 
-	character_tab_button = Button.new()
-	character_tab_button.text = "Character"
-	character_tab_button.toggle_mode = true
-	character_tab_button.pressed.connect(func() -> void:
-		_set_function_tab("attributes")
-	)
-	header_row.add_child(character_tab_button)
-
-	inventory_tab_button = Button.new()
-	inventory_tab_button.text = "Inventory"
-	inventory_tab_button.toggle_mode = true
-	inventory_tab_button.pressed.connect(func() -> void:
-		_set_function_tab("inventory")
-	)
-	header_row.add_child(inventory_tab_button)
+	function_bar_title = _make_label("手机", 14, Color("#f7e3b2"))
+	header_row.add_child(function_bar_title)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(spacer)
 
-	function_bar_title = _make_label("Character", 14, Color("#f7e3b2"))
-	function_bar_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	header_row.add_child(function_bar_title)
+	var close_button := Button.new()
+	close_button.text = "×"
+	close_button.custom_minimum_size = Vector2(32, 26)
+	close_button.pressed.connect(_close_function_panel)
+	header_row.add_child(close_button)
 
 	function_bar_hint = _make_label("", 11, Color("#d7c6a2"))
-	function_bar_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	function_bar_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	function_box.add_child(function_bar_hint)
 
 	character_view = VBoxContainer.new()
@@ -471,6 +538,22 @@ func _build_function_bar(root: Control) -> void:
 	inventory_list = VBoxContainer.new()
 	inventory_list.add_theme_constant_override("separation", 4)
 	inventory_view.add_child(inventory_list)
+
+	city_view = VBoxContainer.new()
+	city_view.add_theme_constant_override("separation", 6)
+	function_box.add_child(city_view)
+
+	city_summary_label = _make_label("", 12, Color("#d5cabd"))
+	city_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	city_view.add_child(city_summary_label)
+
+	tasks_view = VBoxContainer.new()
+	tasks_view.add_theme_constant_override("separation", 6)
+	function_box.add_child(tasks_view)
+
+	tasks_summary_label = _make_label("", 12, Color("#d5cabd"))
+	tasks_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tasks_view.add_child(tasks_summary_label)
 
 	function_bar_message = _make_label("", 11, Color("#cdbb94"))
 	function_bar_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -519,7 +602,7 @@ func _build_dialog(root: Control) -> void:
 	speaker_label = _make_label("Speaker", 14, Color("#68442f"))
 	dialog_label = _make_label("Hello.", 13, Color("#302821"))
 	dialog_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialog_hint = _make_label("Press E to continue", 11, Color("#7b6a56"))
+	dialog_hint = _make_label("按 E 继续", 11, Color("#7b6a56"))
 	dialog_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	box.add_child(speaker_label)
 	box.add_child(dialog_label)
@@ -552,7 +635,7 @@ func _build_shop(root: Control) -> void:
 	box.add_theme_constant_override("separation", 8)
 	margin.add_child(box)
 
-	shop_title = _make_label("SHOP", 16, Color("#3b4b34"))
+	shop_title = _make_label("商店", 16, Color("#3b4b34"))
 	shop_items_label = _make_label("", 13, Color("#2f342d"))
 	shop_message_label = _make_label("", 11, Color("#68704e"))
 	shop_items_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -601,28 +684,67 @@ func _make_label(text: String, font_size: int, color: Color) -> Label:
 
 
 func _set_function_tab(tab_name: String) -> void:
+	if current_function_tab == tab_name and function_detail_panel != null and function_detail_panel.visible:
+		_close_function_panel()
+		return
 	current_function_tab = tab_name
+	if function_detail_panel != null:
+		function_detail_panel.visible = true
+	_refresh_function_bar()
+
+
+func _close_function_panel() -> void:
+	current_function_tab = "closed"
+	if function_detail_panel != null:
+		function_detail_panel.visible = false
 	_refresh_function_bar()
 
 
 func _refresh_function_bar() -> void:
 	if function_bar_panel == null:
 		return
+	var showing_character := current_function_tab == "attributes"
 	var showing_inventory := current_function_tab == "inventory"
+	var showing_city := current_function_tab == "city"
+	var showing_tasks := current_function_tab == "tasks"
 	if character_tab_button != null:
-		character_tab_button.button_pressed = not showing_inventory
+		character_tab_button.button_pressed = showing_character
 	if inventory_tab_button != null:
 		inventory_tab_button.button_pressed = showing_inventory
+	if city_tab_button != null:
+		city_tab_button.button_pressed = showing_city
+	if tasks_tab_button != null:
+		tasks_tab_button.button_pressed = showing_tasks
 	if function_bar_title != null:
-		function_bar_title.text = "Inventory" if showing_inventory else "Character"
+		if showing_inventory:
+			function_bar_title.text = "背包"
+		elif showing_city:
+			function_bar_title.text = "城市"
+		elif showing_tasks:
+			function_bar_title.text = "今日事项"
+		else:
+			function_bar_title.text = "角色状态"
 	if function_bar_hint != null:
-		function_bar_hint.text = "Use 1-9 or click an item to consume it." if showing_inventory else "Check your condition before you plan work, food, and rest."
+		if showing_inventory:
+			function_bar_hint.text = "按 1-9 或点击物品使用。"
+		elif showing_city:
+			function_bar_hint.text = "用手机确认当前位置、住处和通勤压力。"
+		elif showing_tasks:
+			function_bar_hint.text = "今天先做最紧急的事，不要把自己耗空。"
+		else:
+			function_bar_hint.text = "规划工作、吃饭和休息前，先看清自己的状态。"
 	if character_view != null:
-		character_view.visible = not showing_inventory
+		character_view.visible = showing_character
 	if inventory_view != null:
 		inventory_view.visible = showing_inventory
+	if city_view != null:
+		city_view.visible = showing_city
+	if tasks_view != null:
+		tasks_view.visible = showing_tasks
 	_refresh_character_view()
 	_refresh_inventory_view()
+	_refresh_city_view()
+	_refresh_tasks_view()
 	_refresh_function_bar_message()
 
 
@@ -635,12 +757,14 @@ func _refresh_character_view() -> void:
 	var stress: int = int(function_status.get("stress", 0))
 	var max_stress: int = int(function_status.get("max_stress", 100))
 	var date_text: String = str(function_status.get("date", "6/1"))
-	var segment_text: String = str(function_status.get("segment", "Morning"))
-	var weather_text: String = str(function_status.get("weather", "Clear"))
-	var work_text: String = str(function_status.get("work_performance", "Off duty"))
-	var rent_text: String = str(function_status.get("rent_label", "7 days left"))
-	character_summary_label.text = "Cash %d    Energy %d/%d    Stress %d/%d" % [money, energy, max_energy, stress, max_stress]
-	character_status_label.text = "Date %s    Time %s    Weather %s\nWork %s\nRent %s" % [date_text, segment_text, weather_text, work_text, rent_text]
+	var segment_text: String = str(function_status.get("segment", "上午"))
+	var weather_text: String = str(function_status.get("weather", "晴天"))
+	var work_text: String = str(function_status.get("work_performance", "未工作"))
+	var rent_text: String = str(function_status.get("rent_label", "7天后到期"))
+	var housing_text: String = str(function_status.get("housing_label", "城中村合租"))
+	var commute_fare: int = int(function_status.get("commute_fare", 6))
+	character_summary_label.text = "现金 %d    体力 %d/%d    压力 %d/%d" % [money, energy, max_energy, stress, max_stress]
+	character_status_label.text = "日期 %s    时间 %s    天气 %s\n工作 %s\n住房 %s    通勤 %d元\n房租 %s" % [date_text, segment_text, weather_text, work_text, housing_text, commute_fare, rent_text]
 
 
 func _refresh_inventory_view() -> void:
@@ -650,7 +774,7 @@ func _refresh_inventory_view() -> void:
 		child.queue_free()
 	if function_inventory.is_empty():
 		inventory_empty_label.visible = true
-		inventory_empty_label.text = "Your bag is empty. Buy food or drinks first, then come back here to use them."
+		inventory_empty_label.text = "包里是空的。先去买点吃的或喝的，需要时再回来使用。"
 		return
 	inventory_empty_label.visible = false
 	for i in range(function_inventory.size()):
@@ -658,18 +782,40 @@ func _refresh_inventory_view() -> void:
 		var quantity: int = int(item.get("quantity", 1))
 		var energy: int = int(item.get("energy", 0))
 		var stress_relief: int = int(item.get("stress_relief", 0))
-		var stress_text := "Stress -%d" % stress_relief
+		var stress_text := "压力 -%d" % stress_relief
 		if stress_relief < 0:
-			stress_text = "Stress +%d" % abs(stress_relief)
+			stress_text = "压力 +%d" % abs(stress_relief)
 		var use_button := Button.new()
 		use_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		use_button.text = "%d. %s x%d   Energy +%d   %s" % [i + 1, str(item.get("name", "Item")), quantity, energy, stress_text]
-		use_button.tooltip_text = "Consume this item from the bag."
+		use_button.text = "%d. %s x%d   体力 +%d   %s" % [i + 1, str(item.get("name", "物品")), quantity, energy, stress_text]
+		use_button.tooltip_text = "使用这个物品。"
 		var use_index := i
 		use_button.pressed.connect(func() -> void:
 			inventory_item_used.emit(use_index)
 		)
 		inventory_list.add_child(use_button)
+
+
+func _refresh_city_view() -> void:
+	if city_summary_label == null:
+		return
+	var housing_text: String = str(function_status.get("housing_label", "城中村合租"))
+	var commute_fare: int = int(function_status.get("commute_fare", 6))
+	var commute_energy: int = int(function_status.get("commute_energy_cost", 4))
+	var commute_stress: int = int(function_status.get("commute_stress_gain", 2))
+	city_summary_label.text = "当前位置：%s\n当前住处：%s\n通勤成本：%d元 / 体力 -%d / 压力 +%d\n地图提示：左上角小地图会标出当前目标。" % [
+		_get_scene_label(minimap_scene_key),
+		housing_text,
+		commute_fare,
+		commute_energy,
+		commute_stress,
+	]
+
+
+func _refresh_tasks_view() -> void:
+	if tasks_summary_label == null:
+		return
+	tasks_summary_label.text = _build_goals_text(function_status)
 
 
 func _refresh_function_bar_message() -> void:
@@ -679,9 +825,15 @@ func _refresh_function_bar_message() -> void:
 		function_bar_message.text = function_bar_notice
 		return
 	if current_function_tab == "inventory":
-		function_bar_message.text = "Store purchases now go into the bag first. Their effects apply only when you use them here."
+		function_bar_message.text = "购买的食物会先进入背包，只有使用后才恢复状态。"
+	elif current_function_tab == "city":
+		function_bar_message.text = "租房会改变家门口、屋内风格和通勤消耗。"
+	elif current_function_tab == "tasks":
+		function_bar_message.text = "这不是任务清单，只是今天活下去的提醒。"
+	elif current_function_tab == "closed":
+		function_bar_message.text = ""
 	else:
-		function_bar_message.text = "The bottom bar is ready for more systems later, such as phone, tasks, or city tools."
+		function_bar_message.text = "底部手机已经收起，点图标打开具体面板。"
 
 
 func _build_goals_text(status: Dictionary) -> String:
@@ -691,41 +843,95 @@ func _build_goals_text(status: Dictionary) -> String:
 	var segment_key: String = str(status.get("segment_key", "morning"))
 	var energy: int = int(status.get("energy", 100))
 	var stress: int = int(status.get("stress", 0))
-	var work_performance: String = str(status.get("work_performance", "Off duty"))
+	var worked_today: bool = bool(status.get("worked_this_day", false))
 	var current_delivery_state: String = str(status.get("delivery_state", "none"))
 
 	if rent_overdue > 0:
-		goals.append("- Rent is overdue. Go home and pay it.")
+		goals.append("- 房租逾期了，回家交房租。")
 	elif rent_due_in == 0:
-		goals.append("- Rent is due today.")
+		goals.append("- 房租今天到期。")
 	elif rent_due_in <= 2:
-		goals.append("- Save cash for rent.")
+		goals.append("- 留现金准备交房租。")
 
 	if current_delivery_state == "accepted":
-		goals.append("- Pick up the delivery order.")
+		goals.append("- 去取外卖订单。")
 	elif current_delivery_state == "picked":
-		goals.append("- Drop off the delivery order.")
-	elif work_performance == "Not Worked" and segment_key in ["morning", "afternoon"]:
-		goals.append("- Choose a work route for today.")
-	elif work_performance == "Not Worked" and segment_key == "evening":
-		goals.append("- Late work is still possible at the media company.")
-	elif work_performance != "Not Worked":
-		goals.append("- Work is done. Recover before tomorrow.")
+		goals.append("- 去完成外卖送达。")
+	elif not worked_today and segment_key in ["morning", "afternoon"]:
+		goals.append("- 选一条今天的工作路线。")
+	elif not worked_today and segment_key == "evening":
+		goals.append("- 传媒公司还能接晚间活。")
+	elif worked_today:
+		goals.append("- 今天工作完成，先恢复。")
 
 	if energy < 45:
-		goals.append("- Buy food or use something from the bag.")
+		goals.append("- 买吃的，或用包里的食物。")
 	if stress >= 60:
-		goals.append("- Lower stress by chatting, resting, or visiting the clinic.")
+		goals.append("- 聊天、休息或去诊所降压。")
 	if segment_key in ["evening", "late_night"]:
-		goals.append("- Head home and sleep for the next day.")
+		goals.append("- 回家睡觉，进入下一天。")
 	if goals.is_empty():
-		goals.append("- Explore the block and talk to people.")
-		goals.append("- Plan your work, food, and rent.")
+		goals.append("- 逛逛街区，和人说说话。")
+		goals.append("- 规划工作、吃饭和房租。")
 
 	var selected := PackedStringArray()
 	for i in range(min(3, goals.size())):
 		selected.append(goals[i])
-	return "Today\n%s" % "\n".join(selected)
+	return "今日\n%s" % "\n".join(selected)
+
+
+func _get_scene_label(scene_key: String) -> String:
+	match scene_key:
+		"apartment":
+			return "出租屋"
+		"office":
+			return "公司工位"
+		"media_company":
+			return "传媒公司"
+		"metro_station":
+			return "地铁站"
+		"wet_market":
+			return "菜场"
+		"clinic":
+			return "社区诊所"
+		_:
+			return "上海街区"
+
+
+func _zh_prompt(text: String) -> String:
+	match text:
+		"Press E to enter the apartment":
+			return "按 E 回家"
+		"Press E to shop":
+			return "按 E 购物"
+		"Press E to enter the metro":
+			return "按 E 进地铁站"
+		"Press E to buy food":
+			return "按 E 买饭"
+		"Press E to buy coffee":
+			return "按 E 买咖啡"
+		"Press E to enter the office":
+			return "按 E 进公司"
+		"Press E to enter the media company":
+			return "按 E 进传媒公司"
+		"Press E to accept a delivery order":
+			return "按 E 接外卖单"
+		"Press E to pick up food":
+			return "按 E 取餐"
+		"Press E to deliver food":
+			return "按 E 送达"
+		"Press E to enter the wet market":
+			return "按 E 进菜场"
+		"Press E to enter the clinic":
+			return "按 E 进诊所"
+		"Press E to inspect the talent apartment":
+			return "按 E 查看人才公寓"
+		"Press E to check rental listings":
+			return "按 E 看租房信息"
+		"Press E to interact":
+			return "按 E 互动"
+		_:
+			return text
 
 
 func _panel_style(bg: Color, border: Color) -> StyleBoxFlat:
@@ -746,15 +952,19 @@ func _panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 func _get_minimap_title(scene_key: String) -> String:
 	match scene_key:
 		"apartment":
-			return "APARTMENT"
+			return "出租屋"
 		"office":
-			return "OFFICE FLOOR"
+			return "公司"
 		"media_company":
-			return "STUDIO"
+			return "直播间"
 		"metro_station":
-			return "METRO"
+			return "地铁"
+		"wet_market":
+			return "菜场"
+		"clinic":
+			return "诊所"
 		_:
-			return "CITY BLOCK"
+			return "上海街区"
 
 
 func _draw_minimap() -> void:
@@ -793,11 +1003,24 @@ func _draw_minimap_scene_background(inner_rect: Rect2) -> void:
 			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.02, 0.36, 0.96, 0.04)), Color(0.90, 0.74, 0.24, 0.72))
 			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.10, 0.60, 0.20, 0.12)), Color(0.64, 0.78, 0.72, 0.40))
 			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.34, 0.68, 0.42, 0.12)), Color(0.48, 0.60, 0.66, 0.42))
+		"wet_market":
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.08, 0.20, 0.22, 0.24)), Color(0.44, 0.56, 0.32, 0.54))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.38, 0.20, 0.22, 0.24)), Color(0.64, 0.36, 0.32, 0.48))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.68, 0.20, 0.22, 0.24)), Color(0.75, 0.62, 0.32, 0.48))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.42, 0.76, 0.18, 0.08)), Color(0.88, 0.76, 0.44, 0.60))
+		"clinic":
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.08, 0.22, 0.34, 0.20)), Color(0.82, 0.95, 0.88, 0.54))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.58, 0.24, 0.28, 0.14)), Color(0.35, 0.46, 0.52, 0.46))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.16, 0.62, 0.30, 0.16)), Color(0.66, 0.82, 0.74, 0.44))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.42, 0.82, 0.18, 0.08)), Color(0.86, 0.96, 0.90, 0.62))
 		_:
 			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.28, 0.10)), _minimap_point(inner_rect, Vector2(0.28, 0.90)), Color(0.46, 0.44, 0.38, 0.55), 3.0)
 			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.14, 0.32)), _minimap_point(inner_rect, Vector2(0.76, 0.34)), Color(0.46, 0.44, 0.38, 0.52), 3.0)
 			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.10, 0.74)), _minimap_point(inner_rect, Vector2(0.64, 0.48)), Color(0.46, 0.44, 0.38, 0.52), 3.0)
 			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.68, 0.02, 0.10, 0.96)), Color(0.26, 0.40, 0.48, 0.72))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.38, 0.12, 0.10, 0.08)), Color(0.38, 0.50, 0.34, 0.42))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.82, 0.12, 0.12, 0.16)), Color(0.48, 0.62, 0.72, 0.42))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.18, 0.72, 0.16, 0.10)), Color(0.75, 0.58, 0.36, 0.42))
 
 
 func _draw_minimap_grid(inner_rect: Rect2) -> void:

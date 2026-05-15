@@ -55,31 +55,31 @@ func _build_ui() -> void:
 	box.add_theme_constant_override("separation", 10)
 	margin.add_child(box)
 
-	var eyebrow := _make_label("SHANGHAI URBAN LIFE DEMO", 12, Color("#f1d58a"))
+	var eyebrow := _make_label("上海都市生活 DEMO", 12, Color("#f1d58a"))
 	box.add_child(eyebrow)
 
-	var title := _make_label("Shanghai Drift Life", 26, Color("#fff1cf"))
+	var title := _make_label("新路故城", 26, Color("#fff1cf"))
 	box.add_child(title)
 
-	var subtitle := _make_label("Plan your commute, work, rent, and rest through a rainy Shanghai week.", 13, Color("#d5c7b3"))
+	var subtitle := _make_label("在一个潮湿的上海街区里，安排通勤、工作、房租和休息。", 13, Color("#d5c7b3"))
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(subtitle)
 
-	var bullet_1 := _make_label("WASD move  E interact  Esc close dialogue or panels", 12, Color("#cdbca7"))
+	var bullet_1 := _make_label("WASD 移动  E 互动  Esc 关闭对话或面板", 12, Color("#cdbca7"))
 	box.add_child(bullet_1)
-	var bullet_2 := _make_label("The minimap shows your position, nearby people, and the current goal.", 12, Color("#cdbca7"))
+	var bullet_2 := _make_label("左上小地图显示位置、附近的人和当前目标。", 12, Color("#cdbca7"))
 	box.add_child(bullet_2)
-	var bullet_3 := _make_label("The sidebar can collapse, and time pauses during dialogue and shopping.", 12, Color("#cdbca7"))
+	var bullet_3 := _make_label("底部手机图标会打开角色、背包、城市和今日事项。", 12, Color("#cdbca7"))
 	box.add_child(bullet_3)
 
 	start_button = Button.new()
-	start_button.text = "Enter Shanghai"
+	start_button.text = "进入上海"
 	start_button.custom_minimum_size = Vector2(0, 42)
 	start_button.focus_mode = Control.FOCUS_NONE
 	start_button.pressed.connect(_start_game)
 	box.add_child(start_button)
 
-	var hint := _make_label("Press Enter, Space, or E to start", 11, Color("#9e9386"))
+	var hint := _make_label("按 Enter、Space 或 E 开始", 11, Color("#9e9386"))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(hint)
 

@@ -16,8 +16,11 @@ Godot 4 2D pixel-art life simulation prototype set in modern Shanghai.
 - Small Shanghai urban village area with rental room, convenience store, metro entrance, and restaurant
 - Real-world Shanghai anchors: Huangpu River, Suzhou Creek, Puxi/Pudong split, People's Square, the Bund, Lujiazui, and Xujiahui
 - More real Shanghai daily-life points: wet market, community clinic, talent apartment, and rental agency
+- Walkable wet market interior with cheap food purchases and a damp, lived-in market palette
+- Walkable community clinic interior with registration/rest interaction for fatigue and stress recovery
 - Time system: morning, afternoon, evening, late night
 - HUD with date, time segment, money, and energy
+- HUD minimap for street/interior scenes, including compressed Shanghai anchors and current objective markers
 - Seven NPCs with fixed routes, dialogue, time-segment behavior, and readable job identities
 - Interaction system for dialogue, shop, and sleeping
 - Sleeping advances to the next day and restores energy
@@ -27,6 +30,10 @@ Godot 4 2D pixel-art life simulation prototype set in modern Shanghai.
 - Convenience store and restaurant food choices that trade money for energy
 - Wet market food choices as cheaper daily recovery options
 - Community clinic visit that costs money but restores energy and reduces stress
+- Rental agency housing choices with deposit/fee, rent amount, commute fare, commute energy cost, and commute stress
+- Moving is now playable: signed housing contracts change the home street exit, apartment mood, rent, and commute pressure
+- Compact phone-style bottom dock with icon buttons for character status, bag, city info, and daily reminders
+- Main player-facing HUD, interaction prompts, shops, jobs, rent, commute, and NPC daily dialogue are localized to Chinese
 - Work performance based on current energy and weather, affecting wage and fatigue
 - Weather cycle with rain visuals, rainy tinting, and commute penalties
 - Lightweight NPC relationship growth from daily conversations
@@ -54,6 +61,8 @@ Godot 4 2D pixel-art life simulation prototype set in modern Shanghai.
 - `scripts/world/city_map.gd`: map, TileMap, collision, buildings, interactables
 - `scripts/world/apartment_interior.gd`: walkable rental-room interior
 - `scripts/world/metro_station_interior.gd`: walkable metro station and commute gate
+- `scripts/world/wet_market_interior.gd`: walkable wet market interior and cheap food shop
+- `scripts/world/clinic_interior.gd`: walkable community clinic interior and recovery interaction
 - `scripts/world/media_company_interior.gd`: walkable livestream/media-company interior
 - `scripts/world/world_interactable.gd`: interactable hotspots
 - `scripts/entities/player.gd`: movement, facing, camera, interaction scan
@@ -78,8 +87,10 @@ The first version intentionally uses generated placeholder pixel art, so the gam
 8. Buy food or coffee to trade money for energy and stress changes.
 9. Talk to each NPC once per day to raise relationship and reduce stress.
 10. Check the apartment rent notice and pay rent when it is due.
-11. Visit the wet market for cheaper food, or the community clinic when stress and fatigue are high.
-12. Check the talent apartment and rental agency to understand future housing pressure.
+11. Enter the wet market for cheaper food, or enter the community clinic when stress and fatigue are high.
+12. Check the talent apartment, then use the rental agency to compare housing contracts and actually move home.
+13. After moving, enter/exit the apartment again to see the new home exit position and apartment mood.
+14. Use the compact bottom phone dock: 人 opens status, 包 opens inventory, 城 opens city/housing info, 事 opens daily reminders.
 13. Walk to the delivery station, accept a food-delivery order, pick up food at the restaurant, and deliver it to the rental building.
 14. Enter the media company and start the streamer job from the livestream set.
 15. Return to the apartment bed and sleep to advance to the next day and change weather.

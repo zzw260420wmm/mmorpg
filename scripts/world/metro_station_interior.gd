@@ -165,9 +165,9 @@ func _create_interactables() -> void:
 	var origin := get_world_rect().position
 	_add_interactable({
 		"id": "metro_gate",
-		"name": "Metro Gate",
+		"name": "地铁闸机",
 		"kind": "metro_commute",
-		"prompt": "Press E to commute to the office",
+		"prompt": "按 E 通勤去公司",
 		"position": origin + Vector2(288, 248),
 		"size": Vector2(74, 32),
 		"fill_color": Color(0.55, 0.76, 0.95, 0.18),
@@ -175,38 +175,38 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "ticket_machine",
-		"name": "Ticket Machine",
+		"name": "售票机",
 		"kind": "dialogue",
-		"prompt": "Press E to check tickets",
+		"prompt": "按 E 查看车票",
 		"position": origin + Vector2(102, 250),
 		"size": Vector2(88, 28),
 		"lines": {
-			"default": ["Single ride fare: 6 yuan.", "Even commuting has to be counted into the day."],
-			"morning": ["Rush hour leaves no room for hesitation."],
-			"late_night": ["The last-train timer blinks in the corner of the screen."],
+			"default": ["单程票价：6 元。", "连通勤也要算进今天的预算里。"],
+			"morning": ["早高峰没有给犹豫留空间。"],
+			"late_night": ["末班车倒计时在屏幕角落闪着。"],
 		},
 		"fill_color": Color(0.62, 0.84, 0.72, 0.16),
 		"border_color": Color("#b8d8c4"),
 	})
 	_add_interactable({
 		"id": "line_map",
-		"name": "Line Map",
+		"name": "线路图",
 		"kind": "dialogue",
-		"prompt": "Press E to check the line map",
+		"prompt": "按 E 查看线路图",
 		"position": origin + Vector2(462, 218),
 		"size": Vector2(92, 28),
 		"lines": {
-			"default": ["The map folds the city into colored lines.", "For the demo, this gate takes you straight to the office district."],
-			"evening": ["Recruitment ads glow beside the return route."],
+			"default": ["这张图把城市折成一条条彩色线路。", "当前 DEMO 中，闸机会直接把你带到公司片区。"],
+			"evening": ["招聘广告在返程线路旁边发亮。"],
 		},
 		"fill_color": Color(0.42, 0.66, 0.91, 0.16),
 		"border_color": Color("#a9d7ff"),
 	})
 	_add_interactable({
 		"id": "metro_exit",
-		"name": "Metro Exit",
+		"name": "地铁站出口",
 		"kind": "exit_metro",
-		"prompt": "Press E to return to street level",
+		"prompt": "按 E 回到街面",
 		"position": origin + Vector2(288, 330),
 		"size": Vector2(82, 30),
 		"fill_color": Color(0.9, 0.74, 0.45, 0.18),

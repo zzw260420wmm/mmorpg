@@ -137,9 +137,9 @@ func _create_interactables() -> void:
 	var origin := get_world_rect().position
 	_add_interactable({
 		"id": "job_operations",
-		"name": "Operations Desk",
+		"name": "运营工位",
 		"kind": "job",
-		"prompt": "Press E to work operations",
+		"prompt": "按 E 做运营助理",
 		"position": origin + Vector2(78, 164),
 		"size": Vector2(76, 30),
 		"fill_color": Color(0.45, 0.62, 0.72, 0.18),
@@ -147,9 +147,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "job_developer",
-		"name": "Developer Desk",
+		"name": "开发工位",
 		"kind": "job",
-		"prompt": "Press E to work development",
+		"prompt": "按 E 做软件开发",
 		"position": origin + Vector2(192, 164),
 		"size": Vector2(76, 30),
 		"fill_color": Color(0.45, 0.58, 0.42, 0.18),
@@ -157,9 +157,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "job_sales",
-		"name": "Sales Desk",
+		"name": "销售工位",
 		"kind": "job",
-		"prompt": "Press E to work sales",
+		"prompt": "按 E 做销售",
 		"position": origin + Vector2(306, 164),
 		"size": Vector2(76, 30),
 		"fill_color": Color(0.78, 0.48, 0.34, 0.18),
@@ -167,9 +167,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "office_exit",
-		"name": "Office Exit",
+		"name": "公司出口",
 		"kind": "exit_office",
-		"prompt": "Press E to leave the office",
+		"prompt": "按 E 离开公司",
 		"position": origin + Vector2(198, 268),
 		"size": Vector2(64, 28),
 		"fill_color": Color(0.58, 0.72, 0.78, 0.18),

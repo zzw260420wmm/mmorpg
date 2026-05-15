@@ -6,6 +6,8 @@ const ArtAssetsScript := preload("res://scripts/core/art_assets.gd")
 
 var current_segment := "morning"
 var current_weather := "overcast"
+var housing_variant := "urban_village"
+var housing_display_name := "城中村合租"
 
 
 func _ready() -> void:
@@ -38,14 +40,31 @@ func set_weather(weather_key: String) -> void:
 	queue_redraw()
 
 
+func set_housing_variant(variant_id: String, display_name: String) -> void:
+	housing_variant = variant_id
+	housing_display_name = display_name
+	queue_redraw()
+
+
 func _draw() -> void:
 	var room := get_world_rect()
+	var shell_color := Color("#746858")
+	var floor_tint := Color(1, 1, 1, 0.88)
+	var wall_tint := Color(1, 1, 1, 0.78)
+	if housing_variant == "far_suburb":
+		shell_color = Color("#5f6668")
+		floor_tint = Color(0.78, 0.86, 0.90, 0.82)
+		wall_tint = Color(0.72, 0.78, 0.80, 0.72)
+	elif housing_variant == "talent_apartment":
+		shell_color = Color("#6f7d82")
+		floor_tint = Color(0.92, 0.96, 0.90, 0.90)
+		wall_tint = Color(0.86, 0.94, 0.92, 0.82)
 	draw_rect(Rect2(room.position + Vector2(5, 6), room.size), Color(0.04, 0.03, 0.03, 0.30))
-	draw_rect(room, Color("#746858"))
+	draw_rect(room, shell_color)
 	draw_rect(Rect2(room.position + Vector2(8, 8), room.size - Vector2(16, 16)), Color("#9b8971"))
 	draw_rect(Rect2(room.position + Vector2(8, 8), Vector2(room.size.x - 16, 48)), Color("#796955"))
-	ArtAssetsScript.draw_tiled_rect(self, "rental_floor", Rect2(room.position + Vector2(8, 64), room.size - Vector2(16, 78)), Color(1, 1, 1, 0.88))
-	ArtAssetsScript.draw_tiled_rect(self, "warm_wall", Rect2(room.position + Vector2(8, 8), Vector2(room.size.x - 16, 48)), Color(1, 1, 1, 0.78))
+	ArtAssetsScript.draw_tiled_rect(self, "rental_floor", Rect2(room.position + Vector2(8, 64), room.size - Vector2(16, 78)), floor_tint)
+	ArtAssetsScript.draw_tiled_rect(self, "warm_wall", Rect2(room.position + Vector2(8, 8), Vector2(room.size.x - 16, 48)), wall_tint)
 
 	for x in range(10):
 		draw_line(room.position + Vector2(16 + x * 26, 65), room.position + Vector2(16 + x * 26, room.size.y - 14), Color(0.42, 0.34, 0.25, 0.35), 1.0)
@@ -60,10 +79,28 @@ func _draw() -> void:
 	ArtAssetsScript.draw_prop(self, "fridge", room.position + Vector2(219, 154), 1.0)
 	ArtAssetsScript.draw_prop(self, "rent_notice", room.position + Vector2(136, 74), 1.0)
 	ArtAssetsScript.draw_prop(self, "laundry_rack", room.position + Vector2(42, 186), 0.9)
+	_draw_housing_variant_details(room)
 	_draw_door(room.position + Vector2(126, 204))
 	_draw_window(room.position + Vector2(34, 24))
 	_draw_window(room.position + Vector2(198, 24))
 	_draw_room_light(room)
+
+
+func _draw_housing_variant_details(room: Rect2) -> void:
+	if housing_variant == "far_suburb":
+		draw_rect(Rect2(room.position + Vector2(28, 166), Vector2(34, 24)), Color("#59616a"))
+		draw_rect(Rect2(room.position + Vector2(32, 160), Vector2(24, 8)), Color("#343b42"))
+		draw_rect(Rect2(room.position + Vector2(166, 178), Vector2(46, 10)), Color("#6c5a48"))
+		draw_rect(Rect2(room.position + Vector2(170, 170), Vector2(36, 8)), Color("#d7c37d"))
+	elif housing_variant == "talent_apartment":
+		draw_rect(Rect2(room.position + Vector2(30, 160), Vector2(34, 28)), Color("#4d635f"))
+		draw_circle(room.position + Vector2(47, 154), 13, Color("#8fbf8a"))
+		draw_rect(Rect2(room.position + Vector2(178, 142), Vector2(56, 12)), Color("#d8fff0"))
+		draw_rect(Rect2(room.position + Vector2(184, 146), Vector2(42, 4)), Color("#6d8d83"))
+	else:
+		draw_line(room.position + Vector2(24, 184), room.position + Vector2(112, 184), Color("#d8c8a0"), 1.0)
+		draw_rect(Rect2(room.position + Vector2(32, 180), Vector2(18, 8)), Color("#bdd3e0"))
+		draw_rect(Rect2(room.position + Vector2(58, 180), Vector2(20, 8)), Color("#e08772"))
 
 
 func _draw_bed(pos: Vector2) -> void:
@@ -137,18 +174,18 @@ func _create_interactables() -> void:
 	var origin := get_world_rect().position
 	_add_interactable({
 		"id": "apartment_bed",
-		"name": "Bed",
+		"name": "床",
 		"kind": "sleep",
-		"prompt": "Press E to sleep",
+		"prompt": "按 E 睡觉",
 		"position": origin + Vector2(70, 144),
 		"size": Vector2(62, 26),
 		"fill_color": Color(0.86, 0.56, 0.56, 0.22),
 	})
 	_add_interactable({
 		"id": "apartment_fridge",
-		"name": "Shared Fridge",
+		"name": "合租冰箱",
 		"kind": "fridge",
-		"prompt": "Press E to check fridge",
+		"prompt": "按 E 翻冰箱",
 		"position": origin + Vector2(236, 204),
 		"size": Vector2(36, 28),
 		"fill_color": Color(0.7, 0.9, 0.8, 0.18),
@@ -156,9 +193,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "rent_notice",
-		"name": "Rent Notice",
+		"name": "房租单",
 		"kind": "rent",
-		"prompt": "Press E to pay rent",
+		"prompt": "按 E 交房租",
 		"position": origin + Vector2(154, 112),
 		"size": Vector2(44, 26),
 		"fill_color": Color(0.95, 0.75, 0.42, 0.18),
@@ -166,9 +203,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "apartment_door",
-		"name": "Apartment Door",
+		"name": "出租屋门",
 		"kind": "exit_apartment",
-		"prompt": "Press E to go outside",
+		"prompt": "按 E 出门",
 		"position": origin + Vector2(146, 208),
 		"size": Vector2(52, 30),
 		"fill_color": Color(0.9, 0.74, 0.45, 0.18),

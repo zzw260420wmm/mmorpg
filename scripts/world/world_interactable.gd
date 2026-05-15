@@ -4,7 +4,7 @@ class_name WorldInteractable
 var interactable_id := ""
 var display_name := ""
 var kind := "dialogue"
-var prompt := "Press E to interact"
+var prompt := "按 E 互动"
 var interaction_size := Vector2(28, 22)
 var lines_by_segment: Dictionary = {}
 var fill_color := Color(1.0, 0.86, 0.42, 0.24)
@@ -15,7 +15,7 @@ func configure(data: Dictionary) -> void:
 	interactable_id = data.get("id", "")
 	display_name = data.get("name", "Interactable")
 	kind = data.get("kind", "dialogue")
-	prompt = data.get("prompt", "Press E to interact")
+	prompt = data.get("prompt", "按 E 互动")
 	interaction_size = data.get("size", interaction_size)
 	lines_by_segment = data.get("lines", {})
 	fill_color = data.get("fill_color", fill_color)
@@ -38,7 +38,9 @@ func get_prompt() -> String:
 func interact(game: Node) -> void:
 	match kind:
 		"enter_apartment":
-			if game.has_method("enter_apartment"):
+			if game.has_method("enter_apartment_from"):
+				game.call("enter_apartment_from", self)
+			elif game.has_method("enter_apartment"):
 				game.call("enter_apartment")
 		"exit_apartment":
 			if game.has_method("exit_apartment"):
@@ -54,6 +56,18 @@ func interact(game: Node) -> void:
 		"exit_metro":
 			if game.has_method("exit_metro_station"):
 				game.call("exit_metro_station")
+		"enter_wet_market":
+			if game.has_method("enter_wet_market"):
+				game.call("enter_wet_market")
+		"exit_wet_market":
+			if game.has_method("exit_wet_market"):
+				game.call("exit_wet_market")
+		"enter_clinic":
+			if game.has_method("enter_clinic"):
+				game.call("enter_clinic")
+		"exit_clinic":
+			if game.has_method("exit_clinic"):
+				game.call("exit_clinic")
 		"metro_commute":
 			if game.has_method("request_commute_work"):
 				game.call("request_commute_work")
@@ -61,7 +75,9 @@ func interact(game: Node) -> void:
 			if game.has_method("request_clinic_visit"):
 				game.call("request_clinic_visit")
 		"rental_agency":
-			if game.has_method("inspect_rental_agency"):
+			if game.has_method("open_housing_agency"):
+				game.call("open_housing_agency", self)
+			elif game.has_method("inspect_rental_agency"):
 				game.call("inspect_rental_agency", self)
 		"talent_apartment":
 			if game.has_method("inspect_talent_apartment"):
@@ -135,6 +151,6 @@ func _get_lines(game: Node) -> Array:
 		var manager: Variant = game.get("time_manager")
 		if manager != null and manager.has_method("get_segment_key"):
 			key = str(manager.call("get_segment_key"))
-	var fallback: Array = lines_by_segment.get("default", ["There is nothing else to do here yet."])
+	var fallback: Array = lines_by_segment.get("default", ["这里暂时没有别的事可做。"])
 	var lines: Array = lines_by_segment.get(key, fallback)
 	return lines
