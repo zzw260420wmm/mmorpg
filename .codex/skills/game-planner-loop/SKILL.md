@@ -79,6 +79,7 @@ Recommend the path that makes the demo more playable as a life simulator fastest
 
 When proposing or implementing future paths, account for the current systems:
 
+- Source text: use the project-local `encoding-guard` skill whenever editing GDScript, scenes, UI copy, dialogue, shop data, NPC data, or localization text.
 - Locations: Shanghai urban-village street, rental apartment, office-side street, office interior, delivery station, and media-company interior.
 - Work: selectable white-collar jobs, streamer work, and route-based delivery work with different wage, energy, and stress profiles.
 - Status: money, energy, stress, rent due date, weather, day/time segment, and work performance.

@@ -61,7 +61,7 @@ func set_time_segment(segment_key: String) -> void:
 
 
 func get_prompt() -> String:
-	return "按 E 与%s说话  好感 %d" % [npc_name, relationship]
+	return "Press E to talk to %s  Affinity %d" % [npc_name, relationship]
 
 
 func set_relationship(value: int) -> void:
@@ -71,7 +71,7 @@ func set_relationship(value: int) -> void:
 func interact(game: Node) -> void:
 	var lines := _get_dialogue_lines()
 	if game.has_method("register_npc_talk"):
-		var result = game.call("register_npc_talk", npc_id)
+		var result: Variant = game.call("register_npc_talk", npc_id)
 		if result is String and not result.is_empty():
 			lines = lines.duplicate()
 			lines.append(result)
@@ -127,7 +127,7 @@ func _draw() -> void:
 
 
 func _apply_segment_route(segment_key: String, warp_to_first_point: bool) -> void:
-	var raw_route = routes_by_segment.get(segment_key, routes_by_segment.get("default", []))
+	var raw_route: Array = routes_by_segment.get(segment_key, routes_by_segment.get("default", []))
 	route_points.clear()
 	for point in raw_route:
 		if point is Vector2:
@@ -149,8 +149,9 @@ func _draw_ellipse(rect: Rect2, color: Color) -> void:
 
 
 func _get_dialogue_lines() -> Array:
-	var fallback := dialogue_by_segment.get("default", ["今天也要好好活着。"])
-	return dialogue_by_segment.get(current_segment, fallback)
+	var fallback: Array = dialogue_by_segment.get("default", ["Another ordinary day in the lane."])
+	var lines: Array = dialogue_by_segment.get(current_segment, fallback)
+	return lines
 
 
 func _get_character_asset_name() -> String:

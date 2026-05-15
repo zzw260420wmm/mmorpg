@@ -4,7 +4,7 @@ class_name WorldInteractable
 var interactable_id := ""
 var display_name := ""
 var kind := "dialogue"
-var prompt := "按 E 互动"
+var prompt := "Press E to interact"
 var interaction_size := Vector2(28, 22)
 var lines_by_segment: Dictionary = {}
 var fill_color := Color(1.0, 0.86, 0.42, 0.24)
@@ -13,9 +13,9 @@ var border_color := Color("#f4d77a")
 
 func configure(data: Dictionary) -> void:
 	interactable_id = data.get("id", "")
-	display_name = data.get("name", "互动点")
+	display_name = data.get("name", "Interactable")
 	kind = data.get("kind", "dialogue")
-	prompt = data.get("prompt", "按 E 互动")
+	prompt = data.get("prompt", "Press E to interact")
 	interaction_size = data.get("size", interaction_size)
 	lines_by_segment = data.get("lines", {})
 	fill_color = data.get("fill_color", fill_color)
@@ -132,8 +132,9 @@ func _ensure_collision_shape() -> void:
 func _get_lines(game: Node) -> Array:
 	var key := "default"
 	if game != null:
-		var manager = game.get("time_manager")
+		var manager: Variant = game.get("time_manager")
 		if manager != null and manager.has_method("get_segment_key"):
 			key = str(manager.call("get_segment_key"))
-	var fallback := lines_by_segment.get("default", ["这里暂时没有更多事情。"])
-	return lines_by_segment.get(key, fallback)
+	var fallback: Array = lines_by_segment.get("default", ["There is nothing else to do here yet."])
+	var lines: Array = lines_by_segment.get(key, fallback)
+	return lines

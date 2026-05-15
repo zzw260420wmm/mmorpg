@@ -7,15 +7,15 @@ signal day_started(day: int)
 signal weather_changed(weather_key: String, weather_label: String)
 
 const SEGMENT_KEYS := ["morning", "afternoon", "evening", "late_night"]
-const SEGMENT_LABELS := ["上午", "下午", "晚上", "深夜"]
+const SEGMENT_LABELS := ["Morning", "Afternoon", "Evening", "Late Night"]
 const WEATHER_SEQUENCE := ["overcast", "rain", "clear", "rain", "overcast"]
 const WEATHER_LABELS := {
-	"clear": "晴",
-	"overcast": "阴",
-	"rain": "雨",
+	"clear": "Clear",
+	"overcast": "Overcast",
+	"rain": "Rain",
 }
 
-@export var seconds_per_segment := 32.0
+@export var seconds_per_segment := 72.0
 
 var month := 6
 var day := 1
@@ -30,8 +30,11 @@ var next_rent_day := 7
 var segment_index := 0
 var elapsed_in_segment := 0.0
 var weather_index := 0
-var weather_key := WEATHER_SEQUENCE[0]
-var last_work_performance := "未上班"
+var weather_key: String = WEATHER_SEQUENCE[0]
+var last_work_performance := "Not Worked"
+var worked_this_day := false
+var time_paused := false
+var flow_multiplier := 1.0
 
 
 func _ready() -> void:
@@ -41,8 +44,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if time_paused:
+		return
 	elapsed_in_segment += delta
-	if elapsed_in_segment >= seconds_per_segment:
+	if elapsed_in_segment >= _get_segment_duration():
 		elapsed_in_segment = 0.0
 		_advance_segment()
 
@@ -56,11 +61,11 @@ func get_segment_label() -> String:
 
 
 func get_date_label() -> String:
-	return "%d月%d日" % [month, day]
+	return "%02d/%02d" % [month, day]
 
 
 func get_weather_label() -> String:
-	return WEATHER_LABELS.get(weather_key, "阴")
+	return WEATHER_LABELS.get(weather_key, "Overcast")
 
 
 func is_rainy() -> bool:
@@ -111,12 +116,12 @@ func get_rent_overdue_days() -> int:
 
 
 func get_rent_label() -> String:
-	var due_in := get_rent_due_in_days()
+	var due_in: int = get_rent_due_in_days()
 	if due_in > 0:
-		return "%d天后交租" % due_in
+		return "Due in %d day(s)" % due_in
 	if due_in == 0:
-		return "今天交租"
-	return "逾期%d天" % abs(due_in)
+		return "Due today"
+	return "Overdue %d day(s)" % abs(due_in)
 
 
 func pay_rent() -> bool:
@@ -153,8 +158,21 @@ func recover_energy(amount: int) -> void:
 	_emit_status()
 
 
+func set_time_paused(paused: bool) -> void:
+	time_paused = paused
+
+
+func set_flow_multiplier(multiplier: float) -> void:
+	flow_multiplier = maxf(0.25, multiplier)
+
+
+func advance_segments(count: int) -> void:
+	for _i in range(max(count, 0)):
+		_advance_segment()
+
+
 func set_segment(segment_key: String) -> void:
-	var next_index := SEGMENT_KEYS.find(segment_key)
+	var next_index: int = SEGMENT_KEYS.find(segment_key)
 	if next_index < 0:
 		return
 	segment_index = next_index
@@ -163,10 +181,11 @@ func set_segment(segment_key: String) -> void:
 	time_segment_changed.emit(get_segment_key(), get_segment_label())
 
 
-func complete_work_shift(wage: int, energy_cost: int, arrive_segment: String, performance_label: String = "普通") -> bool:
+func complete_work_shift(wage: int, energy_cost: int, arrive_segment: String, performance_label: String = "Steady") -> bool:
 	if not consume_energy(energy_cost):
 		return false
 	last_work_performance = performance_label
+	worked_this_day = true
 	add_money(wage)
 	set_segment(arrive_segment)
 	return true
@@ -174,6 +193,7 @@ func complete_work_shift(wage: int, energy_cost: int, arrive_segment: String, pe
 
 func record_work_performance(performance_label: String) -> void:
 	last_work_performance = performance_label
+	worked_this_day = true
 	_emit_status()
 
 
@@ -183,7 +203,8 @@ func sleep_to_next_day() -> void:
 	elapsed_in_segment = 0.0
 	energy = max_energy
 	stress = max(0, stress - 28)
-	last_work_performance = "未上班"
+	last_work_performance = "Not Worked"
+	worked_this_day = false
 	_advance_weather()
 	_apply_daily_rent_pressure()
 	day_started.emit(day)
@@ -209,13 +230,17 @@ func _emit_status() -> void:
 	status_changed.emit(get_status())
 
 
+func _get_segment_duration() -> float:
+	return seconds_per_segment * flow_multiplier
+
+
 func _advance_weather() -> void:
 	weather_index = (weather_index + 1) % WEATHER_SEQUENCE.size()
 	weather_key = WEATHER_SEQUENCE[weather_index]
 
 
 func _apply_daily_rent_pressure() -> void:
-	var overdue_days := get_rent_overdue_days()
+	var overdue_days: int = get_rent_overdue_days()
 	if overdue_days > 0:
 		stress = clampi(stress + min(16, 5 + overdue_days * 3), 0, max_stress)
 	elif get_rent_due_in_days() == 0:

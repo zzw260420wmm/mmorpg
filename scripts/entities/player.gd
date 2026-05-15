@@ -131,7 +131,7 @@ func _on_interaction_area_exited(area: Area2D) -> void:
 
 func _resolve_interactable(area: Area2D) -> Node:
 	if area.has_meta("interactable_node"):
-		var meta_value = area.get_meta("interactable_node")
+		var meta_value: Variant = area.get_meta("interactable_node")
 		if meta_value is Node:
 			return meta_value
 

@@ -50,9 +50,9 @@ func _draw() -> void:
 
 	_draw_windows(room.position + Vector2(28, 22))
 	_draw_windows(room.position + Vector2(230, 22))
-	_draw_workstation(room.position + Vector2(42, 100), "#6f8b9b", "运营")
-	_draw_workstation(room.position + Vector2(156, 100), "#728164", "程序")
-	_draw_workstation(room.position + Vector2(270, 100), "#a07158", "销售")
+	_draw_workstation(room.position + Vector2(42, 100), "#6f8b9b", "Ops")
+	_draw_workstation(room.position + Vector2(156, 100), "#728164", "Dev")
+	_draw_workstation(room.position + Vector2(270, 100), "#a07158", "Sales")
 	ArtAssetsScript.draw_prop(self, "office_desk", room.position + Vector2(58, 110), 1.25)
 	ArtAssetsScript.draw_prop(self, "office_desk", room.position + Vector2(172, 110), 1.25)
 	ArtAssetsScript.draw_prop(self, "office_desk", room.position + Vector2(286, 110), 1.25)
@@ -137,9 +137,9 @@ func _create_interactables() -> void:
 	var origin := get_world_rect().position
 	_add_interactable({
 		"id": "job_operations",
-		"name": "运营岗",
+		"name": "Operations Desk",
 		"kind": "job",
-		"prompt": "按 E 做运营工作",
+		"prompt": "Press E to work operations",
 		"position": origin + Vector2(78, 164),
 		"size": Vector2(76, 30),
 		"fill_color": Color(0.45, 0.62, 0.72, 0.18),
@@ -147,9 +147,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "job_developer",
-		"name": "程序岗",
+		"name": "Developer Desk",
 		"kind": "job",
-		"prompt": "按 E 做程序工作",
+		"prompt": "Press E to work development",
 		"position": origin + Vector2(192, 164),
 		"size": Vector2(76, 30),
 		"fill_color": Color(0.45, 0.58, 0.42, 0.18),
@@ -157,9 +157,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "job_sales",
-		"name": "销售岗",
+		"name": "Sales Desk",
 		"kind": "job",
-		"prompt": "按 E 做销售工作",
+		"prompt": "Press E to work sales",
 		"position": origin + Vector2(306, 164),
 		"size": Vector2(76, 30),
 		"fill_color": Color(0.78, 0.48, 0.34, 0.18),
@@ -167,15 +167,14 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "office_exit",
-		"name": "公司门",
+		"name": "Office Exit",
 		"kind": "exit_office",
-		"prompt": "按 E 离开公司",
+		"prompt": "Press E to leave the office",
 		"position": origin + Vector2(198, 268),
 		"size": Vector2(64, 28),
 		"fill_color": Color(0.58, 0.72, 0.78, 0.18),
 		"border_color": Color("#c7e7ff"),
 	})
-
 
 func _add_interactable(data: Dictionary) -> void:
 	var interactable := WorldInteractableScript.new() as WorldInteractable

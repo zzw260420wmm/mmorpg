@@ -137,18 +137,18 @@ func _create_interactables() -> void:
 	var origin := get_world_rect().position
 	_add_interactable({
 		"id": "apartment_bed",
-		"name": "窄床",
+		"name": "Bed",
 		"kind": "sleep",
-		"prompt": "按 E 睡觉",
+		"prompt": "Press E to sleep",
 		"position": origin + Vector2(70, 144),
 		"size": Vector2(62, 26),
 		"fill_color": Color(0.86, 0.56, 0.56, 0.22),
 	})
 	_add_interactable({
 		"id": "apartment_fridge",
-		"name": "合租冰箱",
+		"name": "Shared Fridge",
 		"kind": "fridge",
-		"prompt": "按 E 翻冰箱",
+		"prompt": "Press E to check fridge",
 		"position": origin + Vector2(236, 204),
 		"size": Vector2(36, 28),
 		"fill_color": Color(0.7, 0.9, 0.8, 0.18),
@@ -156,9 +156,9 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "rent_notice",
-		"name": "房租账单",
+		"name": "Rent Notice",
 		"kind": "rent",
-		"prompt": "按 E 交房租",
+		"prompt": "Press E to pay rent",
 		"position": origin + Vector2(154, 112),
 		"size": Vector2(44, 26),
 		"fill_color": Color(0.95, 0.75, 0.42, 0.18),
@@ -166,14 +166,13 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "apartment_door",
-		"name": "出租屋门",
+		"name": "Apartment Door",
 		"kind": "exit_apartment",
-		"prompt": "按 E 出门",
+		"prompt": "Press E to go outside",
 		"position": origin + Vector2(146, 208),
 		"size": Vector2(52, 30),
 		"fill_color": Color(0.9, 0.74, 0.45, 0.18),
 	})
-
 
 func _add_interactable(data: Dictionary) -> void:
 	var interactable := WorldInteractableScript.new() as WorldInteractable
