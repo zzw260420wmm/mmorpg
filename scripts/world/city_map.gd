@@ -2,6 +2,7 @@ extends Node2D
 class_name CityMap
 
 const TILE_SIZE := 16
+const BUILDING_GRID := TILE_SIZE * 4
 const MAP_SIZE := Vector2i(132, 76)
 
 const WorldInteractableScript := preload("res://scripts/world/world_interactable.gd")
@@ -122,21 +123,22 @@ func _tile_atlas_for_cell(x: int, y: int) -> Vector2i:
 
 
 func _create_buildings() -> void:
-	_add_building("rental", Rect2(64, 64, 176, 112), Color("#8e6d58"), Color("#6d5046"), Color("#efc36f"))
-	_add_building("store", Rect2(560, 76, 192, 116), Color("#6d8d83"), Color("#3d635f"), Color("#f5d37b"))
-	_add_building("restaurant", Rect2(282, 340, 168, 92), Color("#a45d45"), Color("#793d36"), Color("#ffe0a3"))
-	_add_building("metro", Rect2(652, 398, 132, 84), Color("#4d5d70"), Color("#2f3d4f"), Color("#a9d7ff"))
-	_add_building("office", Rect2(1008, 116, 212, 188), Color("#697985"), Color("#3f4d5d"), Color("#c7e7ff"))
-	_add_building("office_shop", Rect2(1112, 424, 152, 86), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
-	_add_building("delivery_station", Rect2(812, 414, 136, 86), Color("#6f7653"), Color("#4d5738"), Color("#f3cf6b"))
-	_add_building("media_company", Rect2(824, 58, 148, 152), Color("#7b647f"), Color("#58445f"), Color("#ffc4d6"))
-	_add_building("wet_market", Rect2(184, 674, 184, 104), Color("#6f7653"), Color("#4d5738"), Color("#f0c77b"))
-	_add_building("community_clinic", Rect2(456, 646, 164, 92), Color("#6d8d83"), Color("#3d635f"), Color("#d8fff0"))
-	_add_building("talent_apartment", Rect2(1262, 150, 184, 146), Color("#7d8588"), Color("#56636c"), Color("#ffe2a1"))
-	_add_building("rental_agency", Rect2(1218, 538, 164, 86), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
+	_add_building("rental", Rect2(64, 64, 128, 128), Color("#8e6d58"), Color("#6d5046"), Color("#efc36f"))
+	_add_building("store", Rect2(576, 64, 128, 128), Color("#6d8d83"), Color("#3d635f"), Color("#f5d37b"))
+	_add_building("restaurant", Rect2(320, 320, 128, 64), Color("#a45d45"), Color("#793d36"), Color("#ffe0a3"))
+	_add_building("metro", Rect2(640, 384, 128, 64), Color("#4d5d70"), Color("#2f3d4f"), Color("#a9d7ff"))
+	_add_building("office", Rect2(1024, 128, 128, 128), Color("#697985"), Color("#3f4d5d"), Color("#c7e7ff"))
+	_add_building("office_shop", Rect2(1152, 448, 128, 64), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
+	_add_building("delivery_station", Rect2(832, 448, 128, 64), Color("#6f7653"), Color("#4d5738"), Color("#f3cf6b"))
+	_add_building("media_company", Rect2(832, 64, 128, 128), Color("#7b647f"), Color("#58445f"), Color("#ffc4d6"))
+	_add_building("wet_market", Rect2(192, 704, 128, 64), Color("#6f7653"), Color("#4d5738"), Color("#f0c77b"))
+	_add_building("community_clinic", Rect2(448, 640, 128, 64), Color("#6d8d83"), Color("#3d635f"), Color("#d8fff0"))
+	_add_building("talent_apartment", Rect2(1280, 128, 128, 128), Color("#7d8588"), Color("#56636c"), Color("#ffe2a1"))
+	_add_building("rental_agency", Rect2(1216, 512, 128, 64), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
 
 
 func _add_building(id: String, rect: Rect2, body: Color, roof: Color, light: Color) -> void:
+	rect = _snap_building_rect(rect)
 	building_rects.append({
 		"id": id,
 		"rect": rect,
@@ -145,6 +147,16 @@ func _add_building(id: String, rect: Rect2, body: Color, roof: Color, light: Col
 		"light": light,
 	})
 	_add_collision_rect("%s_collision" % id, rect.position + Vector2(4, 20), rect.size - Vector2(8, 22))
+
+
+func _snap_building_rect(rect: Rect2) -> Rect2:
+	var grid := float(BUILDING_GRID)
+	var snapped_position := Vector2(round(rect.position.x / grid) * grid, round(rect.position.y / grid) * grid)
+	var snapped_size := Vector2(
+		clampf(round(rect.size.x / grid) * grid, grid, grid * 2.0),
+		clampf(round(rect.size.y / grid) * grid, grid, grid * 2.0)
+	)
+	return Rect2(snapped_position, snapped_size)
 
 
 func _create_boundaries() -> void:
@@ -194,7 +206,7 @@ func _create_interactables() -> void:
 		"name": "便利店",
 		"kind": "shop",
 		"prompt": "按 E 购物",
-		"position": Vector2(656, 202),
+		"position": Vector2(656, 176),
 		"size": Vector2(58, 28),
 		"fill_color": Color(0.93, 0.78, 0.36, 0.24),
 	})
@@ -203,7 +215,7 @@ func _create_interactables() -> void:
 		"name": "地铁口",
 		"kind": "enter_metro",
 		"prompt": "按 E 进地铁站",
-		"position": Vector2(720, 390),
+		"position": Vector2(720, 448),
 		"size": Vector2(60, 28),
 		"lines": {
 			"default": ["地铁口吐出潮湿的风和白色灯光。"],
@@ -278,7 +290,7 @@ func _create_interactables() -> void:
 		"name": "菜场",
 		"kind": "enter_wet_market",
 		"prompt": "按 E 进菜场",
-		"position": Vector2(278, 790),
+		"position": Vector2(272, 768),
 		"size": Vector2(78, 30),
 		"lines": {
 			"default": ["菜场比便利店便宜，但它要求你自己把希望煮熟。"],
@@ -293,7 +305,7 @@ func _create_interactables() -> void:
 		"name": "社区诊所",
 		"kind": "enter_clinic",
 		"prompt": "按 E 进诊所",
-		"position": Vector2(538, 750),
+		"position": Vector2(528, 704),
 		"size": Vector2(78, 30),
 		"lines": {
 			"default": ["流感海报和体检通知挤在诊所门口。"],
@@ -308,7 +320,7 @@ func _create_interactables() -> void:
 		"name": "人才公寓",
 		"kind": "talent_apartment",
 		"prompt": "按 E 查看人才公寓",
-		"position": Vector2(1354, 310),
+		"position": Vector2(1344, 256),
 		"size": Vector2(88, 30),
 		"lines": {
 			"default": ["门口贴满申请条件：学历、社保、单位、排队号。"],
@@ -322,7 +334,7 @@ func _create_interactables() -> void:
 		"name": "房产中介",
 		"kind": "rental_agency",
 		"prompt": "按 E 看租房信息",
-		"position": Vector2(1300, 636),
+		"position": Vector2(1280, 576),
 		"size": Vector2(78, 30),
 		"lines": {
 			"default": ["小纸条承诺房间、合租、押金和离地铁的距离。"],
@@ -336,7 +348,7 @@ func _create_interactables() -> void:
 		"name": "小饭馆",
 		"kind": "shop",
 		"prompt": "按 E 买饭",
-		"position": Vector2(366, 438),
+		"position": Vector2(400, 384),
 		"size": Vector2(52, 26),
 		"lines": {
 			"default": ["热气从手写菜单旁边的门缝里溜出来。"],
@@ -351,7 +363,7 @@ func _create_interactables() -> void:
 		"name": "写字楼入口",
 		"kind": "office",
 		"prompt": "按 E 进公司",
-		"position": Vector2(1112, 318),
+		"position": Vector2(1088, 256),
 		"size": Vector2(72, 30),
 		"lines": {
 			"default": ["玻璃墙把天空切成整齐的几块。"],
@@ -367,7 +379,7 @@ func _create_interactables() -> void:
 		"name": "写字楼咖啡",
 		"kind": "shop",
 		"prompt": "按 E 买咖啡",
-		"position": Vector2(1188, 516),
+		"position": Vector2(1216, 512),
 		"size": Vector2(58, 26),
 		"fill_color": Color(0.86, 0.64, 0.38, 0.20),
 		"border_color": Color("#f0c77b"),
@@ -377,7 +389,7 @@ func _create_interactables() -> void:
 		"name": "配送站",
 		"kind": "delivery_station",
 		"prompt": "按 E 接外卖单",
-		"position": Vector2(878, 508),
+		"position": Vector2(896, 512),
 		"size": Vector2(72, 28),
 		"lines": {
 			"default": ["电动车排成一排，手机提示音此起彼伏。"],
@@ -413,7 +425,7 @@ func _create_interactables() -> void:
 		"name": "传媒公司",
 		"kind": "media_company",
 		"prompt": "按 E 进传媒公司",
-		"position": Vector2(898, 222),
+		"position": Vector2(896, 192),
 		"size": Vector2(70, 28),
 		"lines": {
 			"default": ["短视频机构的粉色招牌在走廊上方发光。"],
@@ -432,60 +444,67 @@ func _add_interactable(data: Dictionary) -> void:
 
 
 func _draw_shanghai_geography() -> void:
+	_draw_city_block_grid()
 	_draw_huangpu_river()
 	_draw_suzhou_creek()
 	_draw_city_axis_roads()
 	_draw_real_map_landmarks()
 
 
+func _draw_city_block_grid() -> void:
+	var world_rect := Rect2(Vector2.ZERO, Vector2(MAP_SIZE.x * TILE_SIZE, MAP_SIZE.y * TILE_SIZE))
+	ArtAssetsScript.draw_pixel_grid(self, world_rect, BUILDING_GRID, Color(0.22, 0.20, 0.17, 0.11))
+
+
 func _draw_huangpu_river() -> void:
-	var river := PackedVector2Array([
-		Vector2(914, -20),
-		Vector2(1008, -20),
-		Vector2(1004, 104),
-		Vector2(980, 246),
-		Vector2(1008, 404),
-		Vector2(1024, 740),
-		Vector2(936, 740),
-		Vector2(930, 572),
-		Vector2(940, 430),
-		Vector2(918, 300),
-		Vector2(910, 126),
-	])
-	draw_colored_polygon(river, Color("#405f72"))
-	draw_polyline(river, Color(0.72, 0.88, 0.95, 0.28), 2.0, true)
-	draw_rect(Rect2(Vector2(858, 292), Vector2(210, 34)), Color("#6e7475"))
-	draw_rect(Rect2(Vector2(858, 306), Vector2(210, 5)), Color("#b7a777"))
-	draw_rect(Rect2(Vector2(884, 500), Vector2(210, 42)), Color("#6e7475"))
-	draw_rect(Rect2(Vector2(884, 518), Vector2(210, 5)), Color("#b7a777"))
+	_draw_grid_water(Rect2(Vector2(896, 0), Vector2(128, 256)))
+	_draw_grid_water(Rect2(Vector2(960, 256), Vector2(96, 192)))
+	_draw_grid_water(Rect2(Vector2(928, 448), Vector2(128, 320)))
+	_draw_grid_bridge(Rect2(Vector2(832, 288), Vector2(256, 32)))
+	_draw_grid_bridge(Rect2(Vector2(864, 512), Vector2(256, 32)))
 	for i in range(7):
-		var shimmer_y := 48 + i * 78
-		draw_line(Vector2(936, shimmer_y), Vector2(986, shimmer_y + 18), Color(0.82, 0.95, 1.0, 0.15), 1.0)
+		var shimmer_y := 48 + i * 80
+		draw_line(Vector2(928, shimmer_y), Vector2(992, shimmer_y), Color(0.82, 0.95, 1.0, 0.15), 1.0)
 
 
 func _draw_suzhou_creek() -> void:
-	var creek := PackedVector2Array([
-		Vector2(216, 276),
-		Vector2(374, 262),
-		Vector2(536, 274),
-		Vector2(700, 250),
-		Vector2(914, 256),
-	])
-	draw_polyline(creek, Color("#496879"), 18.0, false)
-	draw_polyline(creek, Color(0.82, 0.95, 1.0, 0.20), 2.0, false)
-	for bridge_x in [344, 612, 792]:
-		draw_rect(Rect2(Vector2(bridge_x, 244), Vector2(62, 30)), Color("#74736c"))
-		draw_line(Vector2(bridge_x + 8, 258), Vector2(bridge_x + 54, 258), Color("#c2b27a"), 1.0)
+	_draw_grid_water(Rect2(Vector2(192, 256), Vector2(256, 32)))
+	_draw_grid_water(Rect2(Vector2(448, 240), Vector2(256, 32)))
+	_draw_grid_water(Rect2(Vector2(704, 256), Vector2(192, 32)))
+	for bridge_x in [320, 576, 768]:
+		_draw_grid_bridge(Rect2(Vector2(bridge_x, 240), Vector2(64, 48)))
 
 
 func _draw_city_axis_roads() -> void:
-	draw_line(Vector2(190, 574), Vector2(930, 318), Color(0.46, 0.46, 0.43, 0.55), 7.0)
-	draw_line(Vector2(444, 218), Vector2(914, 240), Color(0.46, 0.46, 0.43, 0.52), 8.0)
-	draw_line(Vector2(1066, 316), Vector2(1312, 330), Color(0.46, 0.46, 0.43, 0.50), 7.0)
-	draw_line(Vector2(558, 130), Vector2(558, 626), Color(0.42, 0.42, 0.40, 0.45), 6.0)
-	draw_line(Vector2(190, 574), Vector2(930, 318), Color("#d0c38a"), 1.0)
-	draw_line(Vector2(444, 218), Vector2(914, 240), Color("#d0c38a"), 1.0)
-	draw_line(Vector2(1066, 316), Vector2(1312, 330), Color("#d0c38a"), 1.0)
+	_draw_grid_road(Rect2(Vector2(192, 576), Vector2(384, 32)))
+	_draw_grid_road(Rect2(Vector2(576, 320), Vector2(32, 288)))
+	_draw_grid_road(Rect2(Vector2(608, 320), Vector2(320, 32)))
+	_draw_grid_road(Rect2(Vector2(448, 192), Vector2(448, 32)))
+	_draw_grid_road(Rect2(Vector2(544, 128), Vector2(32, 512)))
+	_draw_grid_road(Rect2(Vector2(1056, 320), Vector2(256, 32)))
+
+
+func _draw_grid_water(rect: Rect2) -> void:
+	draw_rect(rect, Color("#405f72"))
+	draw_rect(rect, Color(0.72, 0.88, 0.95, 0.20), false, 1.0)
+	ArtAssetsScript.draw_pixel_grid(self, rect, TILE_SIZE, Color(0.82, 0.95, 1.0, 0.07))
+
+
+func _draw_grid_bridge(rect: Rect2) -> void:
+	draw_rect(rect, Color("#6e7475"))
+	draw_rect(Rect2(rect.position + Vector2(0, rect.size.y * 0.5 - 2), Vector2(rect.size.x, 4)), Color("#b7a777"))
+	draw_rect(rect, Color(0.05, 0.05, 0.04, 0.24), false, 1.0)
+
+
+func _draw_grid_road(rect: Rect2) -> void:
+	draw_rect(rect, Color(0.46, 0.46, 0.43, 0.48))
+	var center_y := rect.position.y + rect.size.y * 0.5
+	var center_x := rect.position.x + rect.size.x * 0.5
+	if rect.size.x >= rect.size.y:
+		draw_line(Vector2(rect.position.x + 8, center_y), Vector2(rect.end.x - 8, center_y), Color("#d0c38a"), 1.0)
+	else:
+		draw_line(Vector2(center_x, rect.position.y + 8), Vector2(center_x, rect.end.y - 8), Color("#d0c38a"), 1.0)
+	draw_rect(rect, Color(0.05, 0.05, 0.04, 0.16), false, 1.0)
 
 
 func _draw_real_map_landmarks() -> void:
@@ -527,179 +546,75 @@ func _draw_building(data: Dictionary) -> void:
 	var light: Color = data["light"]
 	var id: String = data["id"]
 
-	draw_rect(Rect2(rect.position + Vector2(5, 8), rect.size), Color(0.04, 0.04, 0.05, 0.28))
+	draw_rect(Rect2(rect.position + Vector2(4, 4), rect.size), Color(0.04, 0.04, 0.05, 0.26))
 	draw_rect(rect, body)
-	draw_rect(Rect2(rect.position, Vector2(rect.size.x, 24)), roof)
+	draw_rect(Rect2(rect.position, Vector2(rect.size.x, TILE_SIZE)), roof)
+	_draw_building_grid(rect)
 	draw_rect(rect, Color(0.06, 0.05, 0.05, 0.24), false, 2.0)
 
-	if id == "rental":
-		_draw_rental_details(rect, light)
-	elif id == "store":
-		_draw_store_details(rect, light)
+	_draw_grid_building_details(id, rect, light)
+
+
+func _draw_building_grid(rect: Rect2) -> void:
+	ArtAssetsScript.draw_pixel_grid(self, rect, TILE_SIZE, Color(0.05, 0.04, 0.04, 0.16))
+
+
+func _draw_grid_building_details(id: String, rect: Rect2, light: Color) -> void:
+	var cols := int(rect.size.x / TILE_SIZE)
+	var rows := int(rect.size.y / TILE_SIZE)
+	var door_col := max(1, cols / 2 - 1)
+	if id in ["restaurant", "office_shop", "delivery_station", "wet_market", "community_clinic", "rental_agency", "metro"]:
+		door_col = max(1, cols - 3)
+	for row in range(1, max(2, rows - 1)):
+		for col in range(1, cols - 1):
+			if row == rows - 2 and col >= door_col and col <= door_col + 1:
+				continue
+			if (row + col) % 2 == 0:
+				_draw_grid_window(rect, col, row, light)
+	_draw_grid_sign(id, rect)
+	_draw_grid_door(rect, door_col, rows - 2, light)
+	if id == "wet_market":
+		_draw_grid_awning(rect, Color("#f0c77b"), Color("#6f7653"))
 	elif id == "restaurant":
-		_draw_restaurant_details(rect, light)
-	elif id == "metro":
-		_draw_metro_details(rect, light)
-	elif id == "office":
-		_draw_office_details(rect, light)
-	elif id == "office_shop":
-		_draw_office_shop_details(rect, light)
+		_draw_grid_awning(rect, Color("#f2d78d"), Color("#a93f3a"))
 	elif id == "delivery_station":
-		_draw_delivery_station_details(rect, light)
-	elif id == "media_company":
-		_draw_media_company_details(rect, light)
-	elif id == "wet_market":
-		_draw_wet_market_details(rect, light)
-	elif id == "community_clinic":
-		_draw_clinic_details(rect, light)
-	elif id == "talent_apartment":
-		_draw_talent_apartment_details(rect, light)
-	elif id == "rental_agency":
-		_draw_rental_agency_details(rect, light)
+		_draw_grid_scooters(rect)
 
 
-func _draw_rental_details(rect: Rect2, light: Color) -> void:
-	for i in range(4):
-		var window_pos := rect.position + Vector2(18 + i * 38, 42)
-		draw_rect(Rect2(window_pos, Vector2(18, 18)), Color("#d9c194") if i != 2 else Color("#3b3b43"))
-		draw_rect(Rect2(window_pos + Vector2(7, 0), Vector2(2, 18)), Color("#68564c"))
-	draw_rect(Rect2(rect.position + Vector2(75, 84), Vector2(28, 28)), Color("#493c37"))
-	draw_line(rect.position + Vector2(26, 120), rect.position + Vector2(134, 120), Color("#d8c8a0"), 1.0)
-	draw_rect(Rect2(rect.position + Vector2(42, 116), Vector2(14, 8)), Color("#bdd3e0"))
-	draw_rect(Rect2(rect.position + Vector2(86, 116), Vector2(18, 8)), Color("#e08772"))
-	draw_rect(Rect2(rect.position + Vector2(112, 116), Vector2(16, 8)), Color("#f2d77b"))
-	draw_rect(Rect2(rect.position + Vector2(77, 78), Vector2(24, 4)), light)
+func _draw_grid_window(rect: Rect2, col: int, row: int, light: Color) -> void:
+	var pos := rect.position + Vector2(col * TILE_SIZE + 3, row * TILE_SIZE + 3)
+	draw_rect(Rect2(pos, Vector2(10, 8)), light)
+	draw_rect(Rect2(pos + Vector2(5, 0), Vector2(1, 8)), Color(0.10, 0.10, 0.12, 0.28))
 
 
-func _draw_store_details(rect: Rect2, light: Color) -> void:
-	draw_rect(Rect2(rect.position + Vector2(16, 36), Vector2(160, 32)), Color("#efe2bb"))
-	draw_rect(Rect2(rect.position + Vector2(22, 42), Vector2(38, 20)), Color("#83b4ba"))
-	draw_rect(Rect2(rect.position + Vector2(68, 42), Vector2(38, 20)), Color("#e5a45b"))
-	draw_rect(Rect2(rect.position + Vector2(114, 42), Vector2(54, 20)), Color("#c24a54"))
-	draw_rect(Rect2(rect.position + Vector2(74, 84), Vector2(44, 32)), Color("#31505a"))
-	draw_rect(Rect2(rect.position + Vector2(18, 12), Vector2(156, 12)), Color("#ffcf72"))
-	draw_rect(Rect2(rect.position + Vector2(26, 14), Vector2(60, 6)), Color("#f25f5c"))
-	draw_rect(Rect2(rect.position + Vector2(98, 14), Vector2(56, 6)), Color("#5fd4c5"))
-	draw_rect(Rect2(rect.position + Vector2(62, 76), Vector2(68, 8)), light)
+func _draw_grid_door(rect: Rect2, col: int, row: int, light: Color) -> void:
+	var pos := rect.position + Vector2(col * TILE_SIZE, row * TILE_SIZE)
+	draw_rect(Rect2(pos, Vector2(TILE_SIZE * 2, TILE_SIZE * 2)), Color("#2f2d2b"))
+	draw_rect(Rect2(pos + Vector2(4, 5), Vector2(TILE_SIZE * 2 - 8, 7)), light)
 
 
-func _draw_restaurant_details(rect: Rect2, light: Color) -> void:
-	for i in range(5):
-		var stripe_color := Color("#f2d78d") if i % 2 == 0 else Color("#a93f3a")
-		draw_rect(Rect2(rect.position + Vector2(10 + i * 30, 25), Vector2(30, 12)), stripe_color)
-	draw_rect(Rect2(rect.position + Vector2(22, 50), Vector2(40, 26)), light)
-	draw_rect(Rect2(rect.position + Vector2(104, 50), Vector2(34, 42)), Color("#50342d"))
-	draw_rect(Rect2(rect.position + Vector2(20, 6), Vector2(72, 12)), Color("#ffe2a1"))
-	draw_rect(Rect2(rect.position + Vector2(40, 108), Vector2(26, 14)), Color("#4a382e"))
-	draw_rect(Rect2(rect.position + Vector2(72, 110), Vector2(24, 12)), Color("#4a382e"))
+func _draw_grid_sign(id: String, rect: Rect2) -> void:
+	var sign_color := Color("#e8c879")
+	if id in ["metro", "office", "talent_apartment"]:
+		sign_color = Color("#a9d7ff")
+	elif id in ["media_company"]:
+		sign_color = Color("#ffc4d6")
+	elif id in ["community_clinic"]:
+		sign_color = Color("#d8fff0")
+	draw_rect(Rect2(rect.position + Vector2(TILE_SIZE, 4), Vector2(min(rect.size.x - TILE_SIZE * 2, TILE_SIZE * 4), 8)), sign_color)
 
 
-func _draw_metro_details(rect: Rect2, light: Color) -> void:
-	draw_rect(Rect2(rect.position + Vector2(16, 18), Vector2(100, 12)), Color("#77b9e8"))
-	draw_rect(Rect2(rect.position + Vector2(34, 36), Vector2(64, 36)), Color("#263647"))
-	for i in range(4):
-		draw_line(rect.position + Vector2(40, 44 + i * 7), rect.position + Vector2(94, 44 + i * 7), Color("#617287"), 1.0)
-	draw_circle(rect.position + Vector2(22, 24), 8, light)
-	draw_rect(Rect2(rect.position + Vector2(19, 20), Vector2(6, 8)), Color("#2d4258"))
+func _draw_grid_awning(rect: Rect2, a: Color, b: Color) -> void:
+	for col in range(1, int(rect.size.x / TILE_SIZE) - 1):
+		draw_rect(Rect2(rect.position + Vector2(col * TILE_SIZE, TILE_SIZE), Vector2(TILE_SIZE, 8)), a if col % 2 == 0 else b)
 
 
-func _draw_office_details(rect: Rect2, light: Color) -> void:
-	for row in range(5):
-		for col in range(5):
-			var window_pos := rect.position + Vector2(18 + col * 36, 38 + row * 28)
-			var lit := (row + col) % 3 != 0 or current_segment in ["evening", "late_night"]
-			draw_rect(Rect2(window_pos, Vector2(22, 16)), light if lit else Color("#344454"))
-	draw_rect(Rect2(rect.position + Vector2(72, 150), Vector2(68, 38)), Color("#26313d"))
-	draw_rect(Rect2(rect.position + Vector2(84, 158), Vector2(44, 20)), Color("#8fc4d4"))
-	draw_rect(Rect2(rect.position + Vector2(20, 10), Vector2(172, 12)), Color("#c7e7ff"))
-	draw_line(rect.position + Vector2(-70, 202), rect.position + Vector2(138, 202), Color("#8a8f91"), 3.0)
-
-
-func _draw_office_shop_details(rect: Rect2, light: Color) -> void:
-	draw_rect(Rect2(rect.position + Vector2(12, 20), Vector2(128, 24)), Color("#f1d6a1"))
-	draw_rect(Rect2(rect.position + Vector2(22, 26), Vector2(32, 12)), Color("#6f4a34"))
-	draw_rect(Rect2(rect.position + Vector2(62, 26), Vector2(28, 12)), Color("#314350"))
-	draw_rect(Rect2(rect.position + Vector2(100, 26), Vector2(24, 12)), Color("#b75c47"))
-	draw_rect(Rect2(rect.position + Vector2(58, 54), Vector2(36, 32)), Color("#49372c"))
-	draw_rect(Rect2(rect.position + Vector2(16, 52), Vector2(32, 20)), light)
-
-
-func _draw_delivery_station_details(rect: Rect2, light: Color) -> void:
-	draw_rect(Rect2(rect.position + Vector2(12, 18), Vector2(112, 18)), Color("#f4d56f"))
-	draw_rect(Rect2(rect.position + Vector2(20, 24), Vector2(24, 5)), Color("#4d5738"))
-	draw_rect(Rect2(rect.position + Vector2(54, 24), Vector2(24, 5)), Color("#4d5738"))
-	draw_rect(Rect2(rect.position + Vector2(88, 24), Vector2(18, 5)), Color("#4d5738"))
-	draw_rect(Rect2(rect.position + Vector2(50, 52), Vector2(36, 34)), Color("#35412e"))
-	draw_rect(Rect2(rect.position + Vector2(14, 50), Vector2(22, 24)), Color(light))
-	for i in range(4):
-		var scooter_pos := rect.position + Vector2(-8 + i * 32, 112)
-		draw_rect(Rect2(scooter_pos, Vector2(22, 7)), Color("#f1c232"))
-		draw_circle(scooter_pos + Vector2(5, 8), 4, Color("#26313d"))
-		draw_circle(scooter_pos + Vector2(18, 8), 4, Color("#26313d"))
-
-
-func _draw_media_company_details(rect: Rect2, light: Color) -> void:
-	draw_rect(Rect2(rect.position + Vector2(14, 20), Vector2(120, 18)), Color("#ffc4d6"))
-	draw_rect(Rect2(rect.position + Vector2(26, 26), Vector2(24, 5)), Color("#58445f"))
-	draw_rect(Rect2(rect.position + Vector2(58, 26), Vector2(24, 5)), Color("#58445f"))
-	draw_rect(Rect2(rect.position + Vector2(90, 26), Vector2(18, 5)), Color("#58445f"))
-	for row in range(3):
-		for col in range(3):
-			var window_pos := rect.position + Vector2(22 + col * 38, 52 + row * 30)
-			var lit := current_segment in ["evening", "late_night"] or (row + col) % 2 == 0
-			draw_rect(Rect2(window_pos, Vector2(22, 16)), light if lit else Color("#3e3544"))
-	draw_rect(Rect2(rect.position + Vector2(58, 116), Vector2(34, 36)), Color("#342b38"))
-	draw_circle(rect.position + Vector2(116, 128), 12, Color("#ffe2ed"))
-
-
-func _draw_wet_market_details(rect: Rect2, light: Color) -> void:
-	for i in range(5):
-		var awning_color := Color("#f0c77b") if i % 2 == 0 else Color("#6f7653")
-		draw_rect(Rect2(rect.position + Vector2(10 + i * 34, 26), Vector2(34, 14)), awning_color)
-	draw_rect(Rect2(rect.position + Vector2(20, 54), Vector2(42, 28)), Color("#4d5738"))
-	draw_rect(Rect2(rect.position + Vector2(70, 54), Vector2(42, 28)), Color("#8a4b42"))
-	draw_rect(Rect2(rect.position + Vector2(120, 54), Vector2(42, 28)), Color("#6d8d83"))
-	for i in range(4):
-		draw_circle(rect.position + Vector2(28 + i * 10, 66), 3, Color("#e08772"))
-		draw_circle(rect.position + Vector2(78 + i * 10, 66), 3, Color("#e5bd3f"))
-		draw_circle(rect.position + Vector2(128 + i * 10, 66), 3, Color("#bdd3a0"))
-	draw_rect(Rect2(rect.position + Vector2(18, 8), Vector2(96, 12)), light)
-	draw_rect(Rect2(rect.position + Vector2(58, 86), Vector2(52, 18)), Color("#3d3a32"))
-
-
-func _draw_clinic_details(rect: Rect2, light: Color) -> void:
-	draw_rect(Rect2(rect.position + Vector2(16, 28), Vector2(132, 24)), Color("#d8fff0"))
-	draw_rect(Rect2(rect.position + Vector2(76, 32), Vector2(10, 16)), Color("#c76b6d"))
-	draw_rect(Rect2(rect.position + Vector2(70, 38), Vector2(22, 6)), Color("#c76b6d"))
+func _draw_grid_scooters(rect: Rect2) -> void:
 	for i in range(3):
-		draw_rect(Rect2(rect.position + Vector2(24 + i * 42, 58), Vector2(26, 18)), light)
-	draw_rect(Rect2(rect.position + Vector2(66, 76), Vector2(34, 16)), Color("#2f4c4a"))
-	draw_rect(Rect2(rect.position + Vector2(20, 8), Vector2(88, 10)), Color("#e9fff7"))
-	draw_rect(Rect2(rect.position + Vector2(24, 11), Vector2(38, 4)), Color("#3d635f"))
-
-
-func _draw_talent_apartment_details(rect: Rect2, light: Color) -> void:
-	for row in range(4):
-		for col in range(4):
-			var window_pos := rect.position + Vector2(22 + col * 36, 42 + row * 24)
-			var lit := current_segment in ["evening", "late_night"] and (row + col) % 2 == 0
-			draw_rect(Rect2(window_pos, Vector2(20, 14)), light if lit else Color("#3f4d5d"))
-	draw_rect(Rect2(rect.position + Vector2(58, 112), Vector2(56, 34)), Color("#2f3d4f"))
-	draw_rect(Rect2(rect.position + Vector2(70, 122), Vector2(32, 16)), Color("#8fc4d4"))
-	draw_rect(Rect2(rect.position + Vector2(16, 10), Vector2(132, 12)), Color("#c7e7ff"))
-	draw_rect(Rect2(rect.position + Vector2(30, 14), Vector2(32, 4)), Color("#56636c"))
-	draw_rect(Rect2(rect.position + Vector2(74, 14), Vector2(44, 4)), Color("#56636c"))
-
-
-func _draw_rental_agency_details(rect: Rect2, light: Color) -> void:
-	draw_rect(Rect2(rect.position + Vector2(14, 24), Vector2(136, 22)), Color("#f1d6a1"))
-	draw_rect(Rect2(rect.position + Vector2(24, 30), Vector2(28, 6)), Color("#5b4638"))
-	draw_rect(Rect2(rect.position + Vector2(64, 30), Vector2(28, 6)), Color("#5b4638"))
-	draw_rect(Rect2(rect.position + Vector2(104, 30), Vector2(32, 6)), Color("#8a4b42"))
-	draw_rect(Rect2(rect.position + Vector2(18, 54), Vector2(42, 26)), light)
-	draw_rect(Rect2(rect.position + Vector2(96, 50), Vector2(38, 36)), Color("#49372c"))
-	draw_rect(Rect2(rect.position + Vector2(100, 56), Vector2(30, 8)), Color("#d8c8a0"))
-	draw_rect(Rect2(rect.position + Vector2(100, 68), Vector2(22, 6)), Color("#c76b6d"))
+		var pos := rect.position + Vector2(8 + i * 28, rect.size.y + 2)
+		draw_rect(Rect2(pos, Vector2(18, 6)), Color("#f1c232"))
+		draw_rect(Rect2(pos + Vector2(4, 6), Vector2(4, 4)), Color("#26313d"))
+		draw_rect(Rect2(pos + Vector2(14, 6), Vector2(4, 4)), Color("#26313d"))
 
 
 func _draw_puddles_and_lights() -> void:
@@ -727,9 +642,9 @@ func _draw_puddles_and_lights() -> void:
 	if current_segment in ["evening", "late_night"]:
 		draw_circle(Vector2(653, 202), 72, Color(1.0, 0.78, 0.36, 0.08))
 		draw_circle(Vector2(368, 438), 58, Color(1.0, 0.55, 0.28, 0.07))
-		draw_circle(Vector2(720, 390), 68, Color(0.45, 0.7, 1.0, 0.08))
-		draw_circle(Vector2(878, 508), 54, Color(1.0, 0.82, 0.22, 0.08))
-		draw_circle(Vector2(898, 222), 62, Color(1.0, 0.50, 0.68, 0.07))
+		draw_circle(Vector2(720, 448), 68, Color(0.45, 0.7, 1.0, 0.08))
+		draw_circle(Vector2(896, 512), 54, Color(1.0, 0.82, 0.22, 0.08))
+		draw_circle(Vector2(896, 192), 62, Color(1.0, 0.50, 0.68, 0.07))
 		draw_circle(Vector2(560, 228), 90, Color(1.0, 0.82, 0.38, 0.06))
 		draw_circle(Vector2(900, 252), 96, Color(0.50, 0.78, 1.0, 0.07))
 		draw_circle(Vector2(1088, 366), 112, Color(0.55, 0.76, 1.0, 0.08))

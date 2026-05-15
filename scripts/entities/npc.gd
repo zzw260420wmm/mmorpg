@@ -61,11 +61,12 @@ func set_time_segment(segment_key: String) -> void:
 
 
 func get_prompt() -> String:
-	return "Press E to talk to %s  Affinity %d" % [npc_name, relationship]
+	return "按 E 和%s聊天  %s %d/12" % [npc_name, _get_relationship_level(), relationship]
 
 
 func set_relationship(value: int) -> void:
 	relationship = value
+	queue_redraw()
 
 
 func interact(game: Node) -> void:
@@ -124,6 +125,21 @@ func _draw() -> void:
 		draw_rect(Rect2(-1, 1 + bob, 2, 7), Color("#3b4650"))
 	elif role == "metro_commuter":
 		draw_rect(Rect2(5, -1 + bob, 3, 8), Color("#2f5d45"))
+	_draw_relationship_badge(bob)
+
+
+func _draw_relationship_badge(bob: int) -> void:
+	if relationship <= 0:
+		return
+	var fill := Color("#d8b46f")
+	if relationship >= 12:
+		fill = Color("#ffd37a")
+	elif relationship >= 7:
+		fill = Color("#c7e7ff")
+	elif relationship >= 3:
+		fill = Color("#b8d8c4")
+	draw_rect(Rect2(Vector2(-5, -18 + bob), Vector2(10, 3)), Color(0.02, 0.02, 0.02, 0.45))
+	draw_rect(Rect2(Vector2(-5, -18 + bob), Vector2(min(10, 2 + relationship), 3)), fill)
 
 
 func _apply_segment_route(segment_key: String, warp_to_first_point: bool) -> void:
@@ -152,6 +168,16 @@ func _get_dialogue_lines() -> Array:
 	var fallback: Array = dialogue_by_segment.get("default", ["Another ordinary day in the lane."])
 	var lines: Array = dialogue_by_segment.get(current_segment, fallback)
 	return lines
+
+
+func _get_relationship_level() -> String:
+	if relationship >= 12:
+		return "可靠"
+	if relationship >= 7:
+		return "熟人"
+	if relationship >= 3:
+		return "点头之交"
+	return "陌生"
 
 
 func _get_character_asset_name() -> String:

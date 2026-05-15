@@ -359,23 +359,51 @@ $characterAtlas.Save((Join-Path $spritesDir "characters_atlas.png"), [System.Dra
 $characterAtlas.Dispose()
 
 $iconAtlas = New-Bitmap 128 32
-$icons = @("money", "energy", "stress", "rent", "weather", "work", "delivery", "stream")
+$icons = @("money", "energy", "stress", "rent", "weather", "work", "delivery", "stream", "character", "bag", "city", "tasks")
 $iconManifest = @()
 for ($i = 0; $i -lt $icons.Count; $i++) {
-	$x = $i * 16
-	Fill-Rect $iconAtlas ($x + 2) 2 12 12 "#f3dca2"
-	Stroke-Rect $iconAtlas ($x + 2) 2 12 12 "#7f5d3c"
+	$x = ($i % 8) * 16
+	$y = [Math]::Floor($i / 8) * 16
+	Fill-Rect $iconAtlas ($x + 2) ($y + 2) 12 12 "#f3dca2"
+	Stroke-Rect $iconAtlas ($x + 2) ($y + 2) 12 12 "#7f5d3c"
 	switch ($icons[$i]) {
-		"money" { Fill-Rect $iconAtlas ($x + 5) 5 6 2 "#2f5d45"; Fill-Rect $iconAtlas ($x + 5) 9 6 2 "#2f5d45" }
-		"energy" { Fill-Rect $iconAtlas ($x + 7) 4 3 8 "#e5bd3f"; Fill-Rect $iconAtlas ($x + 5) 8 7 2 "#e5bd3f" }
-		"stress" { Fill-Rect $iconAtlas ($x + 5) 5 7 2 "#8a4b42"; Fill-Rect $iconAtlas ($x + 7) 8 3 4 "#8a4b42" }
-		"rent" { Fill-Rect $iconAtlas ($x + 4) 6 8 6 "#8e6d58"; Fill-Rect $iconAtlas ($x + 6) 9 4 3 "#493c37" }
-		"weather" { Fill-Rect $iconAtlas ($x + 4) 6 8 3 "#53666f"; Fill-Rect $iconAtlas ($x + 5) 10 1 3 "#7d96a6"; Fill-Rect $iconAtlas ($x + 9) 10 1 3 "#7d96a6" }
-		"work" { Fill-Rect $iconAtlas ($x + 4) 6 8 6 "#697985"; Fill-Rect $iconAtlas ($x + 6) 4 4 2 "#697985" }
-		"delivery" { Fill-Rect $iconAtlas ($x + 3) 8 10 3 "#e5bd3f"; Fill-Rect $iconAtlas ($x + 4) 11 2 2 "#26313d"; Fill-Rect $iconAtlas ($x + 10) 11 2 2 "#26313d" }
-		"stream" { Fill-Rect $iconAtlas ($x + 5) 5 6 6 "#ffc4d6"; Fill-Rect $iconAtlas ($x + 7) 7 2 2 "#806f7d" }
+		"money" { Fill-Rect $iconAtlas ($x + 5) ($y + 5) 6 2 "#2f5d45"; Fill-Rect $iconAtlas ($x + 5) ($y + 9) 6 2 "#2f5d45" }
+		"energy" { Fill-Rect $iconAtlas ($x + 7) ($y + 4) 3 8 "#e5bd3f"; Fill-Rect $iconAtlas ($x + 5) ($y + 8) 7 2 "#e5bd3f" }
+		"stress" { Fill-Rect $iconAtlas ($x + 5) ($y + 5) 7 2 "#8a4b42"; Fill-Rect $iconAtlas ($x + 7) ($y + 8) 3 4 "#8a4b42" }
+		"rent" { Fill-Rect $iconAtlas ($x + 4) ($y + 6) 8 6 "#8e6d58"; Fill-Rect $iconAtlas ($x + 6) ($y + 9) 4 3 "#493c37" }
+		"weather" { Fill-Rect $iconAtlas ($x + 4) ($y + 6) 8 3 "#53666f"; Fill-Rect $iconAtlas ($x + 5) ($y + 10) 1 3 "#7d96a6"; Fill-Rect $iconAtlas ($x + 9) ($y + 10) 1 3 "#7d96a6" }
+		"work" { Fill-Rect $iconAtlas ($x + 4) ($y + 6) 8 6 "#697985"; Fill-Rect $iconAtlas ($x + 6) ($y + 4) 4 2 "#697985" }
+		"delivery" { Fill-Rect $iconAtlas ($x + 3) ($y + 8) 10 3 "#e5bd3f"; Fill-Rect $iconAtlas ($x + 4) ($y + 11) 2 2 "#26313d"; Fill-Rect $iconAtlas ($x + 10) ($y + 11) 2 2 "#26313d" }
+		"stream" { Fill-Rect $iconAtlas ($x + 5) ($y + 5) 6 6 "#ffc4d6"; Fill-Rect $iconAtlas ($x + 7) ($y + 7) 2 2 "#806f7d" }
+		"character" {
+			Fill-Rect $iconAtlas ($x + 6) ($y + 4) 4 4 "#d7a778"
+			Fill-Rect $iconAtlas ($x + 5) ($y + 3) 6 3 "#2b2527"
+			Fill-Rect $iconAtlas ($x + 5) ($y + 8) 6 5 "#4f6f88"
+			Fill-Rect $iconAtlas ($x + 4) ($y + 9) 2 3 "#4f6f88"
+			Fill-Rect $iconAtlas ($x + 10) ($y + 9) 2 3 "#4f6f88"
+		}
+		"bag" {
+			Fill-Rect $iconAtlas ($x + 4) ($y + 7) 9 6 "#e4c06d"
+			Stroke-Rect $iconAtlas ($x + 4) ($y + 7) 9 6 "#7a5d23"
+			Fill-Rect $iconAtlas ($x + 6) ($y + 4) 5 3 "#7a5d23"
+			Fill-Rect $iconAtlas ($x + 7) ($y + 9) 3 1 "#5d4a28"
+		}
+		"city" {
+			Fill-Rect $iconAtlas ($x + 4) ($y + 7) 2 5 "#8e6d58"
+			Fill-Rect $iconAtlas ($x + 7) ($y + 5) 3 7 "#697985"
+			Fill-Rect $iconAtlas ($x + 11) ($y + 6) 2 6 "#536577"
+			Fill-Rect $iconAtlas ($x + 7) ($y + 8) 1 1 "#efc36f"
+			Fill-Rect $iconAtlas ($x + 11) ($y + 9) 1 1 "#efc36f"
+		}
+		"tasks" {
+			Fill-Rect $iconAtlas ($x + 5) ($y + 4) 7 9 "#efe0b2"
+			Stroke-Rect $iconAtlas ($x + 5) ($y + 4) 7 9 "#8a6c42"
+			Fill-Rect $iconAtlas ($x + 7) ($y + 6) 3 1 "#8a4b42"
+			Fill-Rect $iconAtlas ($x + 7) ($y + 9) 3 1 "#6c5a48"
+			Fill-Rect $iconAtlas ($x + 4) ($y + 6) 2 2 "#e5bd3f"
+		}
 	}
-	$iconManifest += [ordered]@{ name = $icons[$i]; x = $x; y = 0; w = 16; h = 16 }
+	$iconManifest += [ordered]@{ name = $icons[$i]; x = $x; y = $y; w = 16; h = 16 }
 }
 $iconAtlas.Save((Join-Path $uiDir "hud_icons.png"), [System.Drawing.Imaging.ImageFormat]::Png)
 $iconAtlas.Dispose()

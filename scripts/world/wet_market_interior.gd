@@ -36,39 +36,38 @@ func set_weather(weather_key: String) -> void:
 
 func _draw() -> void:
 	var room := get_world_rect()
-	draw_rect(Rect2(room.position + Vector2(5, 6), room.size), Color(0.03, 0.04, 0.03, 0.30))
+	var wall_rect := Rect2(room.position + Vector2(16, 16), Vector2(room.size.x - 32, 48))
+	var floor_rect := Rect2(room.position + Vector2(16, 64), Vector2(room.size.x - 32, room.size.y - 80))
+	draw_rect(Rect2(room.position + Vector2(4, 4), room.size), Color(0.03, 0.04, 0.03, 0.30))
 	draw_rect(room, Color("#5b6046"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), room.size - Vector2(20, 20)), Color("#737267"))
-	ArtAssetsScript.draw_tiled_rect(self, "wet_asphalt", Rect2(room.position + Vector2(10, 58), room.size - Vector2(20, 76)), Color(1, 1, 1, 0.82))
-	ArtAssetsScript.draw_tiled_rect(self, "delivery_wall", Rect2(room.position + Vector2(10, 10), Vector2(room.size.x - 20, 48)), Color(1, 1, 1, 0.70))
-	for x in range(9):
-		draw_line(room.position + Vector2(20 + x * 42, 64), room.position + Vector2(20 + x * 42, room.size.y - 20), Color(0.36, 0.40, 0.36, 0.34), 1.0)
-	for y in range(4):
-		draw_line(room.position + Vector2(16, 78 + y * 36), room.position + Vector2(room.size.x - 16, 78 + y * 36), Color(0.36, 0.40, 0.36, 0.34), 1.0)
-	_draw_stall(room.position + Vector2(36, 86), "#6d8d83", "#bdd3a0")
-	_draw_stall(room.position + Vector2(158, 86), "#a45d45", "#e08772")
-	_draw_stall(room.position + Vector2(280, 86), "#806b52", "#f0c77b")
-	ArtAssetsScript.draw_prop(self, "product_boxes", room.position + Vector2(62, 154), 0.95)
-	ArtAssetsScript.draw_prop(self, "food_sign", room.position + Vector2(318, 42), 0.9)
-	_draw_exit(room.position + Vector2(178, 218))
+	draw_rect(Rect2(room.position + Vector2(16, 16), room.size - Vector2(32, 32)), Color("#737267"))
+	ArtAssetsScript.draw_tiled_rect(self, "wet_asphalt", floor_rect, Color(1, 1, 1, 0.82))
+	ArtAssetsScript.draw_tiled_rect(self, "delivery_wall", wall_rect, Color(1, 1, 1, 0.70))
+	ArtAssetsScript.draw_pixel_grid(self, floor_rect, ArtAssetsScript.TILE_SIZE, Color(0.36, 0.40, 0.36, 0.30))
+	_draw_stall(room.position + Vector2(32, 80), "#6d8d83", "#bdd3a0")
+	_draw_stall(room.position + Vector2(160, 80), "#a45d45", "#e08772")
+	_draw_stall(room.position + Vector2(288, 80), "#806b52", "#f0c77b")
+	ArtAssetsScript.draw_prop(self, "product_boxes", room.position + Vector2(64, 144), 1.0)
+	ArtAssetsScript.draw_prop(self, "food_sign", room.position + Vector2(320, 32), 1.0)
+	_draw_exit(room.position + Vector2(176, 224))
 	if current_weather == "rain":
 		draw_rect(room, Color(0.08, 0.12, 0.14, 0.10))
 
 
 func _draw_stall(pos: Vector2, table_color: String, food_color: String) -> void:
-	draw_rect(Rect2(pos + Vector2(3, 4), Vector2(92, 58)), Color(0.03, 0.03, 0.02, 0.22))
-	draw_rect(Rect2(pos, Vector2(92, 56)), Color(table_color))
-	draw_rect(Rect2(pos + Vector2(8, 8), Vector2(76, 16)), Color("#efe2bb"))
+	draw_rect(Rect2(pos + Vector2(4, 4), Vector2(96, 64)), Color(0.03, 0.03, 0.02, 0.22))
+	draw_rect(Rect2(pos, Vector2(96, 64)), Color(table_color))
+	draw_rect(Rect2(pos + Vector2(8, 8), Vector2(80, 16)), Color("#efe2bb"))
 	for i in range(6):
-		draw_circle(pos + Vector2(14 + i * 12, 36), 4, Color(food_color))
-	draw_rect(Rect2(pos + Vector2(12, -12), Vector2(68, 10)), Color("#f0c77b"))
-	draw_rect(Rect2(pos + Vector2(18, -9), Vector2(18, 4)), Color("#4d5738"))
-	draw_rect(Rect2(pos + Vector2(44, -9), Vector2(18, 4)), Color("#4d5738"))
+		draw_circle(pos + Vector2(16 + i * 12, 40), 4, Color(food_color))
+	draw_rect(Rect2(pos + Vector2(16, -16), Vector2(64, 16)), Color("#f0c77b"))
+	draw_rect(Rect2(pos + Vector2(16, -8), Vector2(16, 4)), Color("#4d5738"))
+	draw_rect(Rect2(pos + Vector2(48, -8), Vector2(16, 4)), Color("#4d5738"))
 
 
 func _draw_exit(pos: Vector2) -> void:
-	draw_rect(Rect2(pos, Vector2(62, 12)), Color("#303225"))
-	draw_rect(Rect2(pos + Vector2(5, 2), Vector2(52, 8)), Color("#d8c886"))
+	draw_rect(Rect2(pos, Vector2(64, 16)), Color("#303225"))
+	draw_rect(Rect2(pos + Vector2(8, 4), Vector2(48, 8)), Color("#d8c886"))
 
 
 func _create_boundaries() -> void:
@@ -82,9 +81,9 @@ func _create_boundaries() -> void:
 
 func _create_stall_collisions() -> void:
 	var origin := get_world_rect().position
-	_add_collision_rect("veg_stall_collision", origin + Vector2(36, 86), Vector2(92, 56))
-	_add_collision_rect("meat_stall_collision", origin + Vector2(158, 86), Vector2(92, 56))
-	_add_collision_rect("fruit_stall_collision", origin + Vector2(280, 86), Vector2(92, 56))
+	_add_collision_rect("veg_stall_collision", origin + Vector2(32, 80), Vector2(96, 64))
+	_add_collision_rect("meat_stall_collision", origin + Vector2(160, 80), Vector2(96, 64))
+	_add_collision_rect("fruit_stall_collision", origin + Vector2(288, 80), Vector2(96, 64))
 
 
 func _create_interactables() -> void:

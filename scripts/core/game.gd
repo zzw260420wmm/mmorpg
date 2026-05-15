@@ -26,16 +26,23 @@ var canvas_modulate: CanvasModulate
 var npcs: Array[LifeNpc] = []
 var current_location := "street"
 var last_street_position := Vector2.ZERO
-var office_return_position := Vector2(1112, 338)
-var media_return_position := Vector2(898, 242)
-var metro_return_position := Vector2(720, 410)
-var market_return_position := Vector2(278, 812)
-var clinic_return_position := Vector2(538, 772)
+var office_return_position := Vector2(1088, 278)
+var media_return_position := Vector2(896, 214)
+var metro_return_position := Vector2(720, 468)
+var market_return_position := Vector2(272, 790)
+var clinic_return_position := Vector2(528, 726)
 var active_housing_id := "urban_village"
 var home_street_position := Vector2(152, 190)
+var housing_sleep_energy := 100
+var housing_sleep_stress_relief := 28
+var housing_fridge_energy := 8
+var housing_fridge_stress_relief := 2
+var housing_rent_stress_relief := 8
+var housing_morning_line := "合租楼里的脚步声比闹钟更早。"
 var delivery_state := "none"
 var delivery_orders_completed_today := 0
 var npc_relationships := {}
+var npc_social_profiles := {}
 var talked_today := {}
 var pending_morning_notice: Array[String] = []
 var inventory_items: Array[Dictionary] = []
@@ -432,12 +439,14 @@ func request_commute_work() -> void:
 		return
 
 	_apply_commute_time_jump()
-	office_return_position = Vector2(1112, 338)
+	office_return_position = Vector2(1088, 278)
 	enter_office(true)
-	hud.show_dialogue("通勤", [
+	var commute_lines := [
 		_get_commute_line(),
-		"你到了公司。去工位选择今天要做的工作。",
-	])
+	]
+	commute_lines.append_array(_apply_commute_day_event())
+	commute_lines.append("你到了公司。去工位选择今天要做的工作。")
+	hud.show_dialogue("通勤", commute_lines)
 
 
 
@@ -466,31 +475,38 @@ func request_job_work(job_id: String) -> void:
 		])
 		return
 
+	var work_event := _apply_workday_event(job_id, wage, energy_cost, stress_gain)
+	wage = int(work_event["wage"])
+	energy_cost = int(work_event["energy_cost"])
+	stress_gain = int(work_event["stress_gain"])
+	var event_lines: Array = work_event["lines"]
 	var return_segment: String = "late_night" if job_id == "job_streamer" and time_manager.get_segment_key() == "evening" else "evening"
 	var worked: bool = time_manager.complete_work_shift(wage, energy_cost, return_segment, performance)
 	if not worked:
-		hud.show_dialogue(job_name, ["你今天太累了，撑不完这份工作。"])
+		var fail_lines := event_lines.duplicate()
+		fail_lines.append("临时状况让这份工作比预想更耗体力，你今天撑不完。")
+		hud.show_dialogue(job_name, fail_lines)
 		return
 	time_manager.add_stress(stress_gain)
 	if current_location == "media_company":
-		media_return_position = Vector2(898, 242)
+		media_return_position = Vector2(896, 214)
 		exit_media_company()
 	else:
-		office_return_position = Vector2(1112, 338)
+		office_return_position = Vector2(1088, 278)
 		exit_office()
-	hud.show_dialogue(job_name, [
-		str(work_result["work_line"]),
-		"结果：%s。收入 +%d，体力 -%d，压力 +%d。" % [performance, wage, energy_cost, stress_gain],
-		_get_work_return_line(job_id),
-	])
+	var result_lines: Array = [str(work_result["work_line"])]
+	result_lines.append_array(event_lines)
+	result_lines.append("结果：%s。收入 +%d，体力 -%d，压力 +%d。" % [performance, wage, energy_cost, stress_gain])
+	result_lines.append(_get_work_return_line(job_id))
+	hud.show_dialogue(job_name, result_lines)
 
 func request_fridge_food() -> void:
 	player.set_controls_enabled(false)
-	time_manager.recover_energy(8)
-	time_manager.relieve_stress(2)
-	hud.show_dialogue("合租冰箱", [
-		"你从冰箱角落翻出一份简单剩饭。",
-		"不算好吃，但能顶一会儿。体力 +8，压力 -2。",
+	time_manager.recover_energy(housing_fridge_energy)
+	time_manager.relieve_stress(housing_fridge_stress_relief)
+	hud.show_dialogue(_get_housing_fridge_title(), [
+		_get_housing_fridge_line(),
+		"体力 +%d，压力 -%d。" % [housing_fridge_energy, housing_fridge_stress_relief],
 	])
 
 
@@ -502,10 +518,15 @@ func request_pay_rent() -> void:
 		var timing_line := "转账完成。房租 -%d。" % time_manager.rent_amount
 		if time_manager.get_rent_due_in_days() > time_manager.rent_cycle_days:
 			timing_line = "你提前交了房租。房租 -%d。" % time_manager.rent_amount
-		hud.show_dialogue("房租单", [
+		time_manager.add_stress(8 - housing_rent_stress_relief)
+		var rent_lines := [
 			timing_line,
-			"至少接下来几天，房东不会再敲门了。压力 -8。",
-		])
+			_get_housing_rent_relief_line(),
+		]
+		if _get_relationship_value("landlord") >= 7:
+			time_manager.relieve_stress(3)
+			rent_lines.append("陈房东没有多催你，还提醒你下次提前留现金。熟人关系让压力额外 -3。")
+		hud.show_dialogue("房租单", rent_lines)
 	else:
 		hud.show_dialogue("房租单", [
 			"你的钱不够交房租，还需要 %d。" % time_manager.rent_amount,
@@ -748,6 +769,11 @@ func request_delivery_dropoff() -> void:
 		reward -= 10
 		stress_gain += 4
 		performance = "透支"
+	var bonus_line := ""
+	if _get_relationship_value("delivery_captain") >= 7:
+		reward += 18
+		stress_gain = max(0, stress_gain - 2)
+		bonus_line = "赵队提前把电梯口和小区门的位置告诉你，少绕了一圈。熟人加成：收入 +18，压力 -2。"
 
 	if not time_manager.consume_energy(energy_cost):
 		hud.show_dialogue("送达点", [
@@ -762,22 +788,25 @@ func request_delivery_dropoff() -> void:
 	time_manager.add_stress(stress_gain)
 	time_manager.record_work_performance("外卖%s" % performance)
 	time_manager.set_segment("evening")
-	hud.show_dialogue("送达点", [
+	var result_lines := [
 		line,
 		"结果：%s。收入 +%d，体力 -%d，压力 +%d。" % [performance, max(35, reward), energy_cost, stress_gain],
 		"这趟结束了。你可以恢复一下、买补给，或者回家。",
-	])
+	]
+	if not bonus_line.is_empty():
+		result_lines.insert(1, bonus_line)
+	hud.show_dialogue("送达点", result_lines)
 
 
 
 func request_sleep() -> void:
 	player.set_controls_enabled(false)
-	time_manager.sleep_to_next_day()
+	time_manager.sleep_to_next_day(housing_sleep_energy, housing_sleep_stress_relief)
 	if current_location == "street":
 		enter_apartment()
 	var lines := [
 		"你终于睡了一觉。",
-		"新的一天开始了，至少还有一点重新安排的空间。",
+		_get_housing_sleep_line(),
 	]
 	lines.append_array(pending_morning_notice)
 	pending_morning_notice.clear()
@@ -796,7 +825,7 @@ func _spawn_npcs() -> void:
 			"palette": {"hair": Color("#3a3029"), "skin": Color("#c49167"), "shirt": Color("#8d7560")},
 			"routes": {
 				"morning": [Vector2(206, 214), Vector2(216, 258), Vector2(154, 258), Vector2(154, 214)],
-				"afternoon": [Vector2(188, 198), Vector2(236, 226), Vector2(1300, 636), Vector2(218, 276)],
+				"afternoon": [Vector2(188, 198), Vector2(236, 226), Vector2(1280, 576), Vector2(218, 276)],
 				"evening": [Vector2(132, 204), Vector2(202, 204)],
 				"late_night": [Vector2(118, 190)],
 			},
@@ -815,7 +844,7 @@ func _spawn_npcs() -> void:
 			"position": Vector2(612, 222),
 			"palette": {"hair": Color("#25262b"), "skin": Color("#d6a373"), "shirt": Color("#3f806f")},
 			"routes": {
-				"morning": [Vector2(612, 222), Vector2(704, 222), Vector2(278, 790)],
+				"morning": [Vector2(612, 222), Vector2(704, 222), Vector2(272, 768)],
 				"afternoon": [Vector2(636, 212), Vector2(710, 212), Vector2(710, 248)],
 				"evening": [Vector2(618, 228), Vector2(690, 228), Vector2(690, 252)],
 				"late_night": [Vector2(646, 214)],
@@ -836,8 +865,8 @@ func _spawn_npcs() -> void:
 			"palette": {"hair": Color("#241b22"), "skin": Color("#d8a17b"), "shirt": Color("#c55b70")},
 			"routes": {
 				"morning": [Vector2(170, 248), Vector2(380, 296), Vector2(704, 382)],
-				"afternoon": [Vector2(338, 286), Vector2(538, 750), Vector2(316, 360)],
-				"evening": [Vector2(716, 386), Vector2(1354, 310), Vector2(658, 218)],
+				"afternoon": [Vector2(338, 286), Vector2(528, 704), Vector2(316, 360)],
+				"evening": [Vector2(716, 386), Vector2(1344, 278), Vector2(658, 218)],
 				"late_night": [Vector2(656, 238), Vector2(520, 268), Vector2(340, 354)],
 			},
 			"dialogue": {
@@ -855,9 +884,9 @@ func _spawn_npcs() -> void:
 			"position": Vector2(1044, 520),
 			"palette": {"hair": Color("#1f2428"), "skin": Color("#c49167"), "shirt": Color("#d29b2e")},
 			"routes": {
-				"morning": [Vector2(1044, 520), Vector2(1118, 496), Vector2(1188, 516)],
+				"morning": [Vector2(1044, 520), Vector2(1118, 496), Vector2(1216, 512)],
 				"afternoon": [Vector2(1038, 520), Vector2(1120, 548), Vector2(1210, 532)],
-				"evening": [Vector2(1084, 518), Vector2(1188, 516), Vector2(1078, 552)],
+				"evening": [Vector2(1084, 518), Vector2(1216, 512), Vector2(1078, 552)],
 				"late_night": [Vector2(1052, 520), Vector2(1070, 520)],
 			},
 			"dialogue": {
@@ -876,7 +905,7 @@ func _spawn_npcs() -> void:
 			"palette": {"hair": Color("#2b2527"), "skin": Color("#d8a17b"), "shirt": Color("#c26c74")},
 			"routes": {
 				"morning": [Vector2(936, 220), Vector2(902, 220), Vector2(930, 252)],
-				"afternoon": [Vector2(934, 222), Vector2(1012, 316), Vector2(1188, 516)],
+				"afternoon": [Vector2(934, 222), Vector2(1012, 316), Vector2(1216, 512)],
 				"evening": [Vector2(936, 220), Vector2(960, 220), Vector2(936, 220)],
 				"late_night": [Vector2(934, 224), Vector2(900, 224)],
 			},
@@ -896,8 +925,8 @@ func _spawn_npcs() -> void:
 			"palette": {"hair": Color("#24292f"), "skin": Color("#d6a373"), "shirt": Color("#5d6870")},
 			"routes": {
 				"morning": [Vector2(716, 386), Vector2(1050, 330), Vector2(1138, 318)],
-				"afternoon": [Vector2(1138, 318), Vector2(1188, 516), Vector2(1300, 636), Vector2(1112, 318)],
-				"evening": [Vector2(1112, 318), Vector2(1354, 310), Vector2(716, 386)],
+				"afternoon": [Vector2(1088, 278), Vector2(1216, 512), Vector2(1280, 576), Vector2(1088, 278)],
+				"evening": [Vector2(1088, 278), Vector2(1344, 278), Vector2(716, 386)],
 				"late_night": [Vector2(1138, 318), Vector2(1038, 336)],
 			},
 			"dialogue": {
@@ -916,7 +945,7 @@ func _spawn_npcs() -> void:
 			"palette": {"hair": Color("#3b302b"), "skin": Color("#c49167"), "shirt": Color("#6b7280")},
 			"routes": {
 				"morning": [Vector2(650, 398), Vector2(706, 386), Vector2(742, 390)],
-				"afternoon": [Vector2(704, 382), Vector2(538, 750), Vector2(704, 382)],
+				"afternoon": [Vector2(704, 382), Vector2(528, 704), Vector2(704, 382)],
 				"evening": [Vector2(742, 390), Vector2(706, 386), Vector2(650, 398)],
 				"late_night": [Vector2(704, 382), Vector2(718, 382)],
 			},
@@ -934,24 +963,43 @@ func _spawn_npcs() -> void:
 		var npc := NpcScene.instantiate() as LifeNpc
 		npc.configure(data)
 		npc_relationships[npc.npc_id] = 0
+		npc_social_profiles[npc.npc_id] = {
+			"name": npc.npc_name,
+			"role": npc.role,
+		}
 		add_child(npc)
 		npcs.append(npc)
 
 func register_npc_talk(npc_id: String) -> String:
 	var current_value: int = int(npc_relationships.get(npc_id, 0))
 	if talked_today.has(npc_id):
+		if _has_shareable_gift():
+			return _give_first_shareable_item(npc_id)
 		if npc_id == "landlord":
-			return "今天已经聊过了。关系 %d。%s" % [current_value, _get_landlord_rent_line()]
-		return "今天已经聊过了。关系 %d。" % current_value
+			return "今天已经聊过了。%s。%s 包里有食物时，再互动可以分享。" % [_get_relationship_summary_line(npc_id), _get_landlord_rent_line()]
+		return "今天已经聊过了。%s。包里有食物时，再互动可以分享。" % _get_relationship_summary_line(npc_id)
 
-	current_value += 1
+	var old_value := current_value
+	current_value = min(12, current_value + 1)
 	npc_relationships[npc_id] = current_value
 	talked_today[npc_id] = true
-	time_manager.relieve_stress(3)
+	var stress_relief := _get_relationship_stress_relief(current_value)
+	time_manager.relieve_stress(stress_relief)
 	_update_npc_relationship_visual(npc_id)
+	_on_status_changed(time_manager.get_status())
+	var event_line := _get_relationship_event_line(npc_id, old_value, current_value)
+	var relationship_gain: int = current_value - old_value
 	if npc_id == "landlord":
-		return "和房东聊了几句。关系 +1，压力 -3。关系 %d。%s" % [current_value, _get_landlord_rent_line()]
-	return "你们在街边短短聊了一会儿。关系 +1，压力 -3。关系 %d。" % current_value
+		var landlord_line := "和房东聊了几句。关系 +%d，压力 -%d。%s。%s" % [relationship_gain, stress_relief, _get_relationship_summary_line(npc_id), _get_landlord_rent_line()]
+		if not event_line.is_empty():
+			return "%s %s" % [landlord_line, event_line]
+		return landlord_line
+	var profile: Dictionary = npc_social_profiles.get(npc_id, {})
+	var npc_name := str(profile.get("name", "对方"))
+	var talk_line := "你和%s在街边短短聊了一会儿。关系 +%d，压力 -%d。%s。" % [npc_name, relationship_gain, stress_relief, _get_relationship_summary_line(npc_id)]
+	if not event_line.is_empty():
+		return "%s %s" % [talk_line, event_line]
+	return talk_line
 
 func _on_player_interact_pressed(interactable: Node) -> void:
 	if hud != null and hud.is_blocking():
@@ -975,6 +1023,10 @@ func _on_status_changed(status: Dictionary) -> void:
 		var display_status: Dictionary = status.duplicate()
 		display_status["delivery_state"] = delivery_state
 		display_status["delivery_orders_completed"] = delivery_orders_completed_today
+		display_status["relationships"] = _get_relationship_snapshot()
+		display_status["talked_today_count"] = talked_today.size()
+		display_status["npc_count"] = npc_relationships.size()
+		display_status["relationship_perks"] = _get_relationship_perk_lines()
 		hud.update_status(display_status)
 		hud.update_function_bar(display_status, _get_inventory_snapshot())
 		_update_hud_navigation()
@@ -1012,6 +1064,155 @@ func _store_inventory_item(item: Dictionary) -> void:
 	_on_status_changed(time_manager.get_status())
 
 
+func _get_relationship_snapshot() -> Array[Dictionary]:
+	var snapshot: Array[Dictionary] = []
+	for npc in npcs:
+		var value: int = int(npc_relationships.get(npc.npc_id, 0))
+		var profile: Dictionary = npc_social_profiles.get(npc.npc_id, {})
+		snapshot.append({
+			"id": npc.npc_id,
+			"name": str(profile.get("name", npc.npc_name)),
+			"role": str(profile.get("role", npc.role)),
+			"value": value,
+			"level": _get_relationship_level(value),
+			"progress": _get_relationship_progress(value),
+			"talked_today": talked_today.has(npc.npc_id),
+		})
+	return snapshot
+
+
+func _get_relationship_value(npc_id: String) -> int:
+	return int(npc_relationships.get(npc_id, 0))
+
+
+func _get_relationship_level(value: int) -> String:
+	if value >= 12:
+		return "可靠"
+	if value >= 7:
+		return "熟人"
+	if value >= 3:
+		return "点头之交"
+	return "陌生"
+
+
+func _get_relationship_progress(value: int) -> int:
+	if value >= 12:
+		return 4
+	if value >= 7:
+		return 3
+	if value >= 3:
+		return 2
+	if value >= 1:
+		return 1
+	return 0
+
+
+func _get_relationship_stress_relief(value: int) -> int:
+	if value >= 12:
+		return 6
+	if value >= 7:
+		return 5
+	if value >= 3:
+		return 4
+	return 3
+
+
+func _get_relationship_summary_line(npc_id: String) -> String:
+	var value: int = int(npc_relationships.get(npc_id, 0))
+	return "关系 %s %d/12" % [_get_relationship_level(value), value]
+
+
+func _has_shareable_gift() -> bool:
+	for item_variant in inventory_items:
+		var item: Dictionary = item_variant
+		if int(item.get("energy", 0)) > 0:
+			return true
+	return false
+
+
+func _give_first_shareable_item(npc_id: String) -> String:
+	if _get_relationship_value(npc_id) >= 12:
+		return "%s已经很信任你了。今天不用再送东西，食物还是留给自己撑过明天吧。" % _get_relationship_npc_name(npc_id)
+	for i in range(inventory_items.size()):
+		var item: Dictionary = inventory_items[i]
+		if int(item.get("energy", 0)) <= 0:
+			continue
+		var item_name := str(item.get("name", "食物"))
+		var profile: Dictionary = npc_social_profiles.get(npc_id, {})
+		var npc_name := str(profile.get("name", "对方"))
+		var old_value: int = _get_relationship_value(npc_id)
+		var gift_gain := 1
+		if int(item.get("stress_relief", 0)) >= 4:
+			gift_gain = 2
+		var new_value: int = min(12, old_value + gift_gain)
+		npc_relationships[npc_id] = new_value
+		_consume_inventory_item_at(i)
+		_update_npc_relationship_visual(npc_id)
+		_on_status_changed(time_manager.get_status())
+		var event_line := _get_relationship_event_line(npc_id, old_value, new_value)
+		var gift_line := "你把%s分给了%s。关系 +%d。%s。" % [item_name, npc_name, new_value - old_value, _get_relationship_summary_line(npc_id)]
+		if not event_line.is_empty():
+			gift_line = "%s %s" % [gift_line, event_line]
+		return gift_line
+	return "包里没有适合分享的食物。"
+
+
+func _consume_inventory_item_at(index: int) -> void:
+	if index < 0 or index >= inventory_items.size():
+		return
+	var item: Dictionary = inventory_items[index]
+	var quantity: int = int(item.get("quantity", 1)) - 1
+	if quantity > 0:
+		item["quantity"] = quantity
+		inventory_items[index] = item
+	else:
+		inventory_items.remove_at(index)
+
+
+func _get_relationship_event_line(npc_id: String, old_value: int, new_value: int) -> String:
+	if old_value < 12 and new_value >= 12:
+		match npc_id:
+			"landlord":
+				return "关系事件：陈房东说有事可以提前讲，别一个人硬扛。"
+			"shopkeeper":
+				return "关系事件：便利店老板开始给你留临期但还能吃的便当。"
+			"girl":
+				return "关系事件：小米把一条便宜好住的租房群发给了你。"
+			"delivery_captain":
+				return "关系事件：赵队把几个好送的小区入口标给了你。"
+			"office_worker_npc":
+				return "关系事件：徐同事愿意提前提醒你会上的坑。"
+			"streamer_npc":
+				return "关系事件：阿雅教你怎么把直播间节奏撑过去。"
+			_:
+				return "关系事件：这座城市里，你终于多了一个能说上话的人。"
+	if old_value < 7 and new_value >= 7:
+		return "关系提升：%s关系变成熟人，部分生活和工作会得到小帮助。" % _get_relationship_npc_name(npc_id)
+	if old_value < 3 and new_value >= 3:
+		return "关系提升：%s现在会主动和你打招呼。" % _get_relationship_npc_name(npc_id)
+	return ""
+
+
+func _get_relationship_npc_name(npc_id: String) -> String:
+	var profile: Dictionary = npc_social_profiles.get(npc_id, {})
+	return str(profile.get("name", "对方"))
+
+
+func _get_relationship_perk_lines() -> Array[String]:
+	var lines: Array[String] = []
+	if _get_relationship_value("shopkeeper") >= 7:
+		lines.append("便利店熟人价：部分食物 -2 元。")
+	if _get_relationship_value("landlord") >= 7:
+		lines.append("房东熟人：交租后额外压力 -3。")
+	if _get_relationship_value("office_worker_npc") >= 7:
+		lines.append("办公室熟人：白领班次压力 -2。")
+	if _get_relationship_value("delivery_captain") >= 7:
+		lines.append("配送站熟人：完成外卖收入 +18、压力 -2。")
+	if _get_relationship_value("streamer_npc") >= 7:
+		lines.append("传媒熟人：主播班收入 +25、压力 -2。")
+	return lines
+
+
 func _update_hud_navigation() -> void:
 	if hud == null or player == null:
 		return
@@ -1040,46 +1241,56 @@ func _get_minimap_points() -> Array[Dictionary]:
 	var points: Array[Dictionary] = []
 	match current_location:
 		"apartment":
-			points.append({"position": Vector2(246, 240), "color": Color("#d98a8a"), "radius": 4.0})
-			points.append({"position": Vector2(412, 300), "color": Color("#b8d8c4"), "radius": 3.0})
-			points.append({"position": Vector2(322, 208), "color": Color("#efc36f"), "radius": 3.0})
-			points.append({"position": Vector2(322, 304), "color": Color("#f0c77b"), "radius": 4.0})
+			points.append(_minimap_point(Vector2(246, 240), "home", "床", Color("#d98a8a"), 4.0))
+			points.append(_minimap_point(Vector2(412, 300), "food", "冰箱", Color("#b8d8c4"), 3.0))
+			points.append(_minimap_point(Vector2(322, 208), "rent", "房租", Color("#efc36f"), 3.0))
+			points.append(_minimap_point(Vector2(322, 304), "exit", "出口", Color("#f0c77b"), 4.0))
 		"office":
-			points.append({"position": Vector2(590, 340), "color": Color("#b8d9e8"), "radius": 4.0})
-			points.append({"position": Vector2(704, 340), "color": Color("#c4d8a8"), "radius": 4.0})
-			points.append({"position": Vector2(818, 340), "color": Color("#e9b293"), "radius": 4.0})
-			points.append({"position": Vector2(710, 444), "color": Color("#c7e7ff"), "radius": 4.0})
+			points.append(_minimap_point(Vector2(590, 340), "work", "运营", Color("#b8d9e8"), 4.0))
+			points.append(_minimap_point(Vector2(704, 340), "work", "开发", Color("#c4d8a8"), 4.0))
+			points.append(_minimap_point(Vector2(818, 340), "work", "销售", Color("#e9b293"), 4.0))
+			points.append(_minimap_point(Vector2(710, 444), "exit", "出口", Color("#c7e7ff"), 4.0))
 		"media_company":
-			points.append({"position": Vector2(606, 316), "color": Color("#ffd0d5"), "radius": 5.0})
-			points.append({"position": Vector2(710, 412), "color": Color("#e3c7f0"), "radius": 4.0})
+			points.append(_minimap_point(Vector2(606, 316), "media", "直播", Color("#ffd0d5"), 5.0))
+			points.append(_minimap_point(Vector2(710, 412), "exit", "出口", Color("#e3c7f0"), 4.0))
 		"metro_station":
-			points.append({"position": Vector2(640, 344), "color": Color("#a9d7ff"), "radius": 5.0})
-			points.append({"position": Vector2(454, 346), "color": Color("#b8d8c4"), "radius": 3.0})
-			points.append({"position": Vector2(640, 426), "color": Color("#e8c879"), "radius": 4.0})
+			points.append(_minimap_point(Vector2(640, 344), "metro", "闸机", Color("#a9d7ff"), 5.0))
+			points.append(_minimap_point(Vector2(454, 346), "info", "售票", Color("#b8d8c4"), 3.0))
+			points.append(_minimap_point(Vector2(640, 426), "exit", "出口", Color("#e8c879"), 4.0))
 		"wet_market":
-			points.append({"position": Vector2(380, 582), "color": Color("#d8c886"), "radius": 5.0})
-			points.append({"position": Vector2(384, 636), "color": Color("#e8c879"), "radius": 4.0})
+			points.append(_minimap_point(Vector2(380, 582), "food", "菜场", Color("#d8c886"), 5.0))
+			points.append(_minimap_point(Vector2(384, 636), "exit", "出口", Color("#e8c879"), 4.0))
 		"clinic":
-			points.append({"position": Vector2(616, 562), "color": Color("#d8fff0"), "radius": 5.0})
-			points.append({"position": Vector2(704, 636), "color": Color("#e8c879"), "radius": 4.0})
+			points.append(_minimap_point(Vector2(616, 562), "clinic", "诊所", Color("#d8fff0"), 5.0))
+			points.append(_minimap_point(Vector2(704, 636), "exit", "出口", Color("#e8c879"), 4.0))
 		_:
-			points.append({"position": home_street_position, "color": Color("#efc36f"), "radius": 4.0})
-			points.append({"position": Vector2(656, 202), "color": Color("#f5d37b"), "radius": 4.0})
-			points.append({"position": Vector2(720, 390), "color": Color("#a9d7ff"), "radius": 5.0})
-			points.append({"position": Vector2(1112, 318), "color": Color("#c7e7ff"), "radius": 5.0})
-			points.append({"position": Vector2(878, 508), "color": Color("#f3cf6b"), "radius": 4.0})
-			points.append({"position": Vector2(898, 222), "color": Color("#ffc4d6"), "radius": 4.0})
-			points.append({"position": Vector2(278, 790), "color": Color("#d8c886"), "radius": 4.0})
-			points.append({"position": Vector2(538, 750), "color": Color("#d8fff0"), "radius": 4.0})
-			points.append({"position": Vector2(1354, 310), "color": Color("#c7e7ff"), "radius": 4.0})
-			points.append({"position": Vector2(1300, 636), "color": Color("#e8c879"), "radius": 4.0})
-			points.append({"position": Vector2(560, 228), "color": Color("#c4d8a8"), "radius": 3.6})
-			points.append({"position": Vector2(900, 252), "color": Color("#a9d7ff"), "radius": 3.6})
-			points.append({"position": Vector2(1088, 366), "color": Color("#8fc4d4"), "radius": 3.8})
+			points.append(_minimap_point(home_street_position, "home", "家", Color("#efc36f"), 4.0))
+			points.append(_minimap_point(Vector2(656, 202), "food", "便利", Color("#f5d37b"), 4.0))
+			points.append(_minimap_point(Vector2(720, 448), "metro", "地铁", Color("#a9d7ff"), 5.0))
+			points.append(_minimap_point(Vector2(1088, 278), "work", "公司", Color("#c7e7ff"), 5.0))
+			points.append(_minimap_point(Vector2(896, 512), "delivery", "配送", Color("#f3cf6b"), 4.0))
+			points.append(_minimap_point(Vector2(896, 192), "media", "传媒", Color("#ffc4d6"), 4.0))
+			points.append(_minimap_point(Vector2(272, 768), "food", "菜场", Color("#d8c886"), 4.0))
+			points.append(_minimap_point(Vector2(528, 704), "clinic", "诊所", Color("#d8fff0"), 4.0))
+			points.append(_minimap_point(Vector2(1344, 278), "home", "公寓", Color("#c7e7ff"), 4.0))
+			points.append(_minimap_point(Vector2(1280, 576), "rent", "中介", Color("#e8c879"), 4.0))
+			points.append(_minimap_point(Vector2(560, 228), "landmark", "人广", Color("#c4d8a8"), 3.6))
+			points.append(_minimap_point(Vector2(900, 252), "landmark", "外滩", Color("#a9d7ff"), 3.6))
+			points.append(_minimap_point(Vector2(1088, 366), "landmark", "陆家嘴", Color("#8fc4d4"), 3.8))
 			for npc in npcs:
 				if npc.visible:
-					points.append({"position": npc.global_position, "color": Color("#f4dcb1"), "radius": 2.6})
+					points.append(_minimap_point(npc.global_position, "npc", "NPC", Color("#f4dcb1"), 2.6))
 	return points
+
+
+func _minimap_point(position: Vector2, kind: String, label: String, color: Color, radius: float) -> Dictionary:
+	return {
+		"position": position,
+		"kind": kind,
+		"label": label,
+		"color": color,
+		"radius": radius,
+	}
 
 
 func _get_minimap_objective() -> Dictionary:
@@ -1113,13 +1324,13 @@ func _get_minimap_objective() -> Dictionary:
 			if time_manager.get_rent_due_in_days() <= 1:
 				return {"position": home_street_position}
 			if time_manager.energy < 45:
-				return {"position": Vector2(278, 790)}
+				return {"position": Vector2(272, 768)}
 			if time_manager.stress >= 60:
-				return {"position": Vector2(538, 750)}
+				return {"position": Vector2(528, 704)}
 			if not time_manager.worked_this_day and time_manager.get_segment_key() in ["morning", "afternoon"]:
-				return {"position": Vector2(720, 390)}
+				return {"position": Vector2(720, 448)}
 			if not time_manager.worked_this_day and time_manager.get_segment_key() == "evening":
-				return {"position": Vector2(898, 222)}
+				return {"position": Vector2(896, 192)}
 	return {}
 
 func _on_time_segment_changed(segment_key: String, _segment_label: String) -> void:
@@ -1166,11 +1377,12 @@ func _on_day_started(_day: int) -> void:
 	delivery_state = "none"
 	delivery_orders_completed_today = 0
 	pending_morning_notice.clear()
+	pending_morning_notice.append(housing_morning_line)
 	if time_manager.get_rent_overdue_days() > 0:
-		pending_morning_notice = [
+		pending_morning_notice.append_array([
 			"房租已经逾期了，房东不会一直当没看见。",
 			"逾期 %d 天。能交的时候，回家在房租单那里处理。" % time_manager.get_rent_overdue_days(),
-		]
+		])
 
 func _on_shop_item_selected(item: Dictionary) -> void:
 	if item.has("contract_id"):
@@ -1181,7 +1393,10 @@ func _on_shop_item_selected(item: Dictionary) -> void:
 		_store_inventory_item(item)
 		hud.focus_inventory_tab()
 		hud.set_function_bar_message("%s 已放进包里，需要时点底部“包”使用。" % item.get("name", "物品"))
-		hud.set_shop_message("已购买 %s。效果会在你使用时生效。" % item.get("name", "物品"))
+		var buy_line := "已购买 %s。效果会在你使用时生效。" % item.get("name", "物品")
+		if int(item.get("relationship_discount", 0)) > 0:
+			buy_line = "熟人价已生效。%s" % buy_line
+		hud.set_shop_message(buy_line)
 	else:
 		hud.set_shop_message("钱不够。")
 
@@ -1215,13 +1430,71 @@ func _apply_housing_profile(housing_id: String, display_name: String) -> void:
 	active_housing_id = housing_id
 	match housing_id:
 		"far_suburb":
-			home_street_position = Vector2(720, 430)
+			home_street_position = Vector2(720, 468)
+			housing_sleep_energy = 88
+			housing_sleep_stress_relief = 20
+			housing_fridge_energy = 6
+			housing_fridge_stress_relief = 1
+			housing_rent_stress_relief = 4
+			housing_morning_line = "远郊房租低一点，但醒来时通勤已经在心里排队。"
 		"talent_apartment":
-			home_street_position = Vector2(1354, 330)
+			home_street_position = Vector2(1344, 278)
+			housing_sleep_energy = 100
+			housing_sleep_stress_relief = 36
+			housing_fridge_energy = 14
+			housing_fridge_stress_relief = 5
+			housing_rent_stress_relief = 12
+			housing_morning_line = "人才公寓的早晨更安静，但高房租会提醒你继续往前跑。"
 		_:
 			home_street_position = Vector2(152, 190)
+			housing_sleep_energy = 100
+			housing_sleep_stress_relief = 28
+			housing_fridge_energy = 8
+			housing_fridge_stress_relief = 2
+			housing_rent_stress_relief = 8
+			housing_morning_line = "合租楼里的脚步声比闹钟更早。"
 	apartment.set_housing_variant(active_housing_id, display_name)
 	last_street_position = home_street_position
+
+
+func _get_housing_fridge_title() -> String:
+	match active_housing_id:
+		"far_suburb":
+			return "小冰箱"
+		"talent_apartment":
+			return "公寓冰箱"
+		_:
+			return "合租冰箱"
+
+
+func _get_housing_fridge_line() -> String:
+	match active_housing_id:
+		"far_suburb":
+			return "远郊单间的小冰箱里只剩一点速冻食品。"
+		"talent_apartment":
+			return "公寓冰箱空间更干净，你终于能好好放点吃的。"
+		_:
+			return "你从合租冰箱角落翻出一份简单剩饭。"
+
+
+func _get_housing_sleep_line() -> String:
+	match active_housing_id:
+		"far_suburb":
+			return "远郊夜里安静，但想到明天还要早起赶地铁，恢复得没那么满。"
+		"talent_apartment":
+			return "公寓隔音好很多，你久违地睡得像一个真正有房间的人。"
+		_:
+			return "新的一天开始了，至少还有一点重新安排的空间。"
+
+
+func _get_housing_rent_relief_line() -> String:
+	match active_housing_id:
+		"far_suburb":
+			return "房租便宜些，但通勤压力还在。压力 -4。"
+		"talent_apartment":
+			return "贵是贵，但至少这几天不用担心门外有人催租。压力 -12。"
+		_:
+			return "至少接下来几天，房东不会再敲门了。压力 -8。"
 
 
 
@@ -1266,17 +1539,7 @@ func _resume_player_after_ui() -> void:
 func _update_time_flow() -> void:
 	if time_manager == null:
 		return
-	match current_location:
-		"apartment":
-			time_manager.set_flow_multiplier(1.65)
-		"office", "media_company":
-			time_manager.set_flow_multiplier(1.35)
-		"metro_station":
-			time_manager.set_flow_multiplier(1.20)
-		"wet_market", "clinic":
-			time_manager.set_flow_multiplier(1.15)
-		_:
-			time_manager.set_flow_multiplier(1.0)
+	time_manager.set_flow_multiplier(1.0)
 
 
 func _apply_commute_time_jump() -> void:
@@ -1342,11 +1605,11 @@ func _get_shop_items(source_id: String) -> Array[Dictionary]:
 			{"id": "wet_market_fruit_bag", "name": "水果袋", "price": 16, "energy": 12, "stress_relief": 6},
 		]
 	if source_id == "convenience_store":
-		return [
+		return _apply_relationship_shop_discount([
 			{"id": "store_rice_ball", "name": "饭团", "price": 10, "energy": 12, "stress_relief": 1},
 			{"id": "store_coffee", "name": "冰咖啡", "price": 12, "energy": 18, "stress_relief": -3},
 			{"id": "store_late_snack", "name": "夜宵便当", "price": 22, "energy": 28, "stress_relief": 4},
-		]
+		], "shopkeeper")
 	if source_id == "rental_agency":
 		return [
 			{"id": "contract_urban_village", "contract_id": "urban_village", "name": "城中村合租", "price": 0, "rent_amount": 1200, "commute_fare": 6, "commute_energy_cost": 4, "commute_stress_gain": 2, "energy": 0, "stress_relief": 0},
@@ -1359,16 +1622,80 @@ func _get_shop_items(source_id: String) -> Array[Dictionary]:
 		{"id": "quick_lunch", "name": "快餐盒饭", "price": 20, "energy": 26, "stress_relief": 2},
 	]
 
+
+func _apply_relationship_shop_discount(items: Array[Dictionary], npc_id: String) -> Array[Dictionary]:
+	if _get_relationship_value(npc_id) < 7:
+		return items
+	var discounted: Array[Dictionary] = []
+	for item_variant in items:
+		var item: Dictionary = item_variant.duplicate()
+		var old_price: int = int(item.get("price", 0))
+		item["price"] = max(1, old_price - 2)
+		item["relationship_discount"] = old_price - int(item["price"])
+		discounted.append(item)
+	return discounted
+
 func _get_commute_line() -> String:
 	var pressure := " 车费 %d，体力 -%d，压力 +%d。" % [time_manager.commute_fare, time_manager.commute_energy_cost, time_manager.commute_stress_gain]
 	if time_manager.is_rainy():
 		return "你带着潮湿的袖口挤进地铁，四十分钟后到达公司附近。%s" % pressure
 	return "你刷卡进闸，坐地铁穿过城市去上班。%s" % pressure
 
+
+func _apply_commute_day_event() -> Array[String]:
+	var lines: Array[String] = []
+	if active_housing_id == "far_suburb" and time_manager.get_segment_key() == "morning":
+		time_manager.add_stress(3)
+		lines.append("远郊通勤比你预想的更挤，早高峰额外压力 +3。")
+	if time_manager.is_rainy():
+		time_manager.consume_energy(2)
+		lines.append("雨水让换乘更慢，你多消耗了 2 点体力。")
+	if time_manager.get_clock_total_minutes() >= 690 and time_manager.get_segment_key() == "morning":
+		time_manager.add_stress(4)
+		lines.append("你接近午前才到公司，打卡时间让人有点心虚。压力 +4。")
+	return lines
+
+
 func _get_work_return_line(job_id: String) -> String:
 	if job_id == "job_streamer":
 		return "你走出直播间时，眼前还晃着环形灯的白光。"
 	return "你走出写字楼，城市的灯已经一盏盏亮起来。"
+
+
+func _apply_workday_event(job_id: String, wage: int, energy_cost: int, stress_gain: int) -> Dictionary:
+	var lines: Array[String] = []
+	if job_id == "job_sales" and time_manager.is_rainy():
+		wage += 35
+		stress_gain += 4
+		lines.append("雨天客户临时改期，你改成电话跟进，反而拿到一点提成。收入 +35，压力 +4。")
+	elif job_id == "job_developer" and time_manager.energy >= 70:
+		wage += 45
+		energy_cost += 4
+		lines.append("你顺手修掉一个线上小问题，主管记了一笔绩效。收入 +45，体力 -4。")
+	elif job_id == "job_operations" and active_housing_id == "far_suburb":
+		stress_gain += 5
+		lines.append("远郊通勤后的疲惫让表格错误多了一点，返工让压力 +5。")
+	elif job_id == "job_streamer" and time_manager.get_segment_key() == "evening":
+		wage += 60
+		stress_gain += 8
+		lines.append("晚间流量更好，但弹幕节奏也更凶。收入 +60，压力 +8。")
+	elif time_manager.stress >= 70:
+		wage -= 25
+		stress_gain += 4
+		lines.append("压力太高，你今天反应慢了半拍。收入 -25，压力 +4。")
+	if job_id in ["job_operations", "job_developer", "job_sales"] and _get_relationship_value("office_worker_npc") >= 7:
+		stress_gain = max(0, stress_gain - 2)
+		lines.append("徐同事提前提醒了今天的坑。熟人加成：压力 -2。")
+	if job_id == "job_streamer" and _get_relationship_value("streamer_npc") >= 7:
+		wage += 25
+		stress_gain = max(0, stress_gain - 2)
+		lines.append("阿雅帮你调了直播间节奏。熟人加成：收入 +25，压力 -2。")
+	return {
+		"wage": max(100, wage),
+		"energy_cost": max(12, energy_cost),
+		"stress_gain": max(0, stress_gain),
+		"lines": lines,
+	}
 
 func _calculate_work_result(job_id: String = "job_operations") -> Dictionary:
 	var job: Dictionary = _get_job_profile(job_id)

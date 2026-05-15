@@ -13,6 +13,13 @@ Godot 4 2D pixel-art life simulation prototype set in modern Shanghai.
 
 - Top-down free movement with camera follow
 - Programmatic pixel-style TileMap map expanded into a compressed real-Shanghai layout
+- Outdoor buildings follow a strict pixel grid: 64px city blocks, with each building capped at 2x2 blocks
+- HUD panels now use square pixel frames and 8/16px-aligned layout instead of rounded freeform panels
+- Interior scenes now use a consistent 16px walkable floor grid, with main furniture and fixtures snapped to pixel-safe sizes
+- Street geography now uses grid-aligned Huangpu River, Suzhou Creek, bridges, and main road blocks for clearer top-down navigation
+- The bottom phone dock now uses reusable atlas icons instead of large text buttons
+- The phone dock now has dedicated pixel icons for character status, contacts, bag, city info, and daily tasks
+- Outdoor building drawing has one reusable grid-building standard for windows, signs, doors, awnings, and small scooters
 - Small Shanghai urban village area with rental room, convenience store, metro entrance, and restaurant
 - Real-world Shanghai anchors: Huangpu River, Suzhou Creek, Puxi/Pudong split, People's Square, the Bund, Lujiazui, and Xujiahui
 - More real Shanghai daily-life points: wet market, community clinic, talent apartment, and rental agency
@@ -21,7 +28,10 @@ Godot 4 2D pixel-art life simulation prototype set in modern Shanghai.
 - Time system: morning, afternoon, evening, late night
 - HUD with date, time segment, money, and energy
 - HUD minimap for street/interior scenes, including compressed Shanghai anchors and current objective markers
+- HUD minimap now includes pixel legends for key place types such as home, work, metro, food, clinic, rent, exits, and objectives
+- HUD objective navigation now draws a warm pixel arrow and approximate grid distance when the current goal is far away
 - Seven NPCs with fixed routes, dialogue, time-segment behavior, and readable job identities
+- Lightweight relationship system: daily conversations raise relationship, reduce stress, trigger small relationship events, and appear in an independent phone contacts tab
 - Interaction system for dialogue, shop, and sleeping
 - Sleeping advances to the next day and restores energy
 - Apartment interior with bed, fridge, desk, and exit door
@@ -32,11 +42,15 @@ Godot 4 2D pixel-art life simulation prototype set in modern Shanghai.
 - Community clinic visit that costs money but restores energy and reduces stress
 - Rental agency housing choices with deposit/fee, rent amount, commute fare, commute energy cost, and commute stress
 - Moving is now playable: signed housing contracts change the home street exit, apartment mood, rent, and commute pressure
-- Compact phone-style bottom dock with icon buttons for character status, bag, city info, and daily reminders
+- Housing now affects daily life: sleep recovery, fridge quality, rent relief, morning pressure, and commute fatigue differ by room type
+- Workday rhythm events: rainy commute, far-suburb fatigue, late arrival pressure, temporary overtime, and small performance bonuses can alter pay, energy, and stress
+- Time now runs at a consistent real-world 96x speed, with a concrete clock shown in the HUD
+- Compact phone-style bottom dock with icon buttons for character status, contacts, bag, city info, and daily reminders
 - Main player-facing HUD, interaction prompts, shops, jobs, rent, commute, and NPC daily dialogue are localized to Chinese
 - Work performance based on current energy and weather, affecting wage and fatigue
 - Weather cycle with rain visuals, rainy tinting, and commute penalties
-- Lightweight NPC relationship growth from daily conversations
+- Relationship perks now affect daily life: convenience-store discounts, rent stress relief, office help, delivery-route help, and media-company support
+- Gifting loop: after talking to an NPC for the day, interacting again can share the first food item in the bag to raise relationship
 - Expanded office-side street with office entrance and coffee stand
 - Stress system affected by work, rain, late nights, food, sleep, and conversation
 - Office interior with selectable white-collar jobs: operations, developer, and sales
@@ -85,12 +99,13 @@ The first version intentionally uses generated placeholder pixel art, so the gam
 6. Inside the office, choose operations, developer, or sales work at a workstation.
 7. Walk east to the office-side street and inspect the office entrance directly if you want to enter without using metro.
 8. Buy food or coffee to trade money for energy and stress changes.
-9. Talk to each NPC once per day to raise relationship and reduce stress.
+9. Talk to each NPC once per day to raise relationship and reduce stress; talk again with food in the bag to gift it.
 10. Check the apartment rent notice and pay rent when it is due.
 11. Enter the wet market for cheaper food, or enter the community clinic when stress and fatigue are high.
 12. Check the talent apartment, then use the rental agency to compare housing contracts and actually move home.
 13. After moving, enter/exit the apartment again to see the new home exit position and apartment mood.
-14. Use the compact bottom phone dock: 人 opens status, 包 opens inventory, 城 opens city/housing info, 事 opens daily reminders.
-13. Walk to the delivery station, accept a food-delivery order, pick up food at the restaurant, and deliver it to the rental building.
-14. Enter the media company and start the streamer job from the livestream set.
-15. Return to the apartment bed and sleep to advance to the next day and change weather.
+14. Use the compact bottom phone dock: 人 opens status, 联系人 opens relationship info, 包 opens inventory, 城 opens city/housing info, 事 opens daily reminders.
+15. Watch the HUD clock: one real second equals 96 in-game seconds, so one full in-game day lasts 15 real minutes.
+16. Walk to the delivery station, accept a food-delivery order, pick up food at the restaurant, and deliver it to the rental building.
+17. Enter the media company and start the streamer job from the livestream set.
+18. Return to the apartment bed and sleep to advance to the next day and change weather.

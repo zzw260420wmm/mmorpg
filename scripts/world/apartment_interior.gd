@@ -48,6 +48,8 @@ func set_housing_variant(variant_id: String, display_name: String) -> void:
 
 func _draw() -> void:
 	var room := get_world_rect()
+	var wall_rect := Rect2(room.position + Vector2(16, 16), Vector2(room.size.x - 32, 48))
+	var floor_rect := Rect2(room.position + Vector2(16, 64), Vector2(room.size.x - 32, room.size.y - 80))
 	var shell_color := Color("#746858")
 	var floor_tint := Color(1, 1, 1, 0.88)
 	var wall_tint := Color(1, 1, 1, 0.78)
@@ -59,90 +61,86 @@ func _draw() -> void:
 		shell_color = Color("#6f7d82")
 		floor_tint = Color(0.92, 0.96, 0.90, 0.90)
 		wall_tint = Color(0.86, 0.94, 0.92, 0.82)
-	draw_rect(Rect2(room.position + Vector2(5, 6), room.size), Color(0.04, 0.03, 0.03, 0.30))
+	draw_rect(Rect2(room.position + Vector2(4, 4), room.size), Color(0.04, 0.03, 0.03, 0.30))
 	draw_rect(room, shell_color)
-	draw_rect(Rect2(room.position + Vector2(8, 8), room.size - Vector2(16, 16)), Color("#9b8971"))
-	draw_rect(Rect2(room.position + Vector2(8, 8), Vector2(room.size.x - 16, 48)), Color("#796955"))
-	ArtAssetsScript.draw_tiled_rect(self, "rental_floor", Rect2(room.position + Vector2(8, 64), room.size - Vector2(16, 78)), floor_tint)
-	ArtAssetsScript.draw_tiled_rect(self, "warm_wall", Rect2(room.position + Vector2(8, 8), Vector2(room.size.x - 16, 48)), wall_tint)
+	draw_rect(Rect2(room.position + Vector2(16, 16), room.size - Vector2(32, 32)), Color("#9b8971"))
+	draw_rect(wall_rect, Color("#796955"))
+	ArtAssetsScript.draw_tiled_rect(self, "rental_floor", floor_rect, floor_tint)
+	ArtAssetsScript.draw_tiled_rect(self, "warm_wall", wall_rect, wall_tint)
+	ArtAssetsScript.draw_pixel_grid(self, floor_rect, ArtAssetsScript.TILE_SIZE, Color(0.42, 0.34, 0.25, 0.30))
 
-	for x in range(10):
-		draw_line(room.position + Vector2(16 + x * 26, 65), room.position + Vector2(16 + x * 26, room.size.y - 14), Color(0.42, 0.34, 0.25, 0.35), 1.0)
-	for y in range(7):
-		draw_line(room.position + Vector2(12, 70 + y * 26), room.position + Vector2(room.size.x - 12, 70 + y * 26), Color(0.42, 0.34, 0.25, 0.35), 1.0)
-
-	_draw_bed(room.position + Vector2(34, 80))
-	_draw_desk(room.position + Vector2(184, 72))
-	_draw_fridge(room.position + Vector2(218, 142))
-	_draw_rent_notice(room.position + Vector2(136, 76))
-	ArtAssetsScript.draw_prop(self, "bed", room.position + Vector2(48, 92), 1.25)
-	ArtAssetsScript.draw_prop(self, "fridge", room.position + Vector2(219, 154), 1.0)
-	ArtAssetsScript.draw_prop(self, "rent_notice", room.position + Vector2(136, 74), 1.0)
-	ArtAssetsScript.draw_prop(self, "laundry_rack", room.position + Vector2(42, 186), 0.9)
+	_draw_bed(room.position + Vector2(32, 80))
+	_draw_desk(room.position + Vector2(176, 64))
+	_draw_fridge(room.position + Vector2(224, 144))
+	_draw_rent_notice(room.position + Vector2(128, 80))
+	ArtAssetsScript.draw_prop(self, "bed", room.position + Vector2(48, 96), 1.0)
+	ArtAssetsScript.draw_prop(self, "fridge", room.position + Vector2(224, 160), 1.0)
+	ArtAssetsScript.draw_prop(self, "rent_notice", room.position + Vector2(128, 80), 1.0)
+	ArtAssetsScript.draw_prop(self, "laundry_rack", room.position + Vector2(48, 176), 1.0)
 	_draw_housing_variant_details(room)
-	_draw_door(room.position + Vector2(126, 204))
-	_draw_window(room.position + Vector2(34, 24))
-	_draw_window(room.position + Vector2(198, 24))
+	_draw_door(room.position + Vector2(128, 208))
+	_draw_window(room.position + Vector2(32, 32))
+	_draw_window(room.position + Vector2(192, 32))
 	_draw_room_light(room)
 
 
 func _draw_housing_variant_details(room: Rect2) -> void:
 	if housing_variant == "far_suburb":
-		draw_rect(Rect2(room.position + Vector2(28, 166), Vector2(34, 24)), Color("#59616a"))
-		draw_rect(Rect2(room.position + Vector2(32, 160), Vector2(24, 8)), Color("#343b42"))
-		draw_rect(Rect2(room.position + Vector2(166, 178), Vector2(46, 10)), Color("#6c5a48"))
-		draw_rect(Rect2(room.position + Vector2(170, 170), Vector2(36, 8)), Color("#d7c37d"))
+		draw_rect(Rect2(room.position + Vector2(32, 160), Vector2(32, 32)), Color("#59616a"))
+		draw_rect(Rect2(room.position + Vector2(32, 144), Vector2(32, 16)), Color("#343b42"))
+		draw_rect(Rect2(room.position + Vector2(160, 176), Vector2(48, 16)), Color("#6c5a48"))
+		draw_rect(Rect2(room.position + Vector2(176, 160), Vector2(32, 16)), Color("#d7c37d"))
 	elif housing_variant == "talent_apartment":
-		draw_rect(Rect2(room.position + Vector2(30, 160), Vector2(34, 28)), Color("#4d635f"))
-		draw_circle(room.position + Vector2(47, 154), 13, Color("#8fbf8a"))
-		draw_rect(Rect2(room.position + Vector2(178, 142), Vector2(56, 12)), Color("#d8fff0"))
-		draw_rect(Rect2(room.position + Vector2(184, 146), Vector2(42, 4)), Color("#6d8d83"))
+		draw_rect(Rect2(room.position + Vector2(32, 160), Vector2(32, 32)), Color("#4d635f"))
+		draw_circle(room.position + Vector2(48, 152), 12, Color("#8fbf8a"))
+		draw_rect(Rect2(room.position + Vector2(176, 144), Vector2(64, 16)), Color("#d8fff0"))
+		draw_rect(Rect2(room.position + Vector2(192, 144), Vector2(32, 8)), Color("#6d8d83"))
 	else:
-		draw_line(room.position + Vector2(24, 184), room.position + Vector2(112, 184), Color("#d8c8a0"), 1.0)
-		draw_rect(Rect2(room.position + Vector2(32, 180), Vector2(18, 8)), Color("#bdd3e0"))
-		draw_rect(Rect2(room.position + Vector2(58, 180), Vector2(20, 8)), Color("#e08772"))
+		draw_line(room.position + Vector2(32, 192), room.position + Vector2(112, 192), Color("#d8c8a0"), 1.0)
+		draw_rect(Rect2(room.position + Vector2(32, 176), Vector2(16, 16)), Color("#bdd3e0"))
+		draw_rect(Rect2(room.position + Vector2(64, 176), Vector2(16, 16)), Color("#e08772"))
 
 
 func _draw_bed(pos: Vector2) -> void:
-	draw_rect(Rect2(pos + Vector2(3, 4), Vector2(70, 50)), Color(0.06, 0.05, 0.04, 0.24))
-	draw_rect(Rect2(pos, Vector2(70, 50)), Color("#5c4b45"))
-	draw_rect(Rect2(pos + Vector2(6, 7), Vector2(58, 36)), Color("#b45c62"))
-	draw_rect(Rect2(pos + Vector2(8, 9), Vector2(22, 14)), Color("#e3d3b8"))
+	draw_rect(Rect2(pos + Vector2(4, 4), Vector2(64, 48)), Color(0.06, 0.05, 0.04, 0.24))
+	draw_rect(Rect2(pos, Vector2(64, 48)), Color("#5c4b45"))
+	draw_rect(Rect2(pos + Vector2(8, 8), Vector2(48, 32)), Color("#b45c62"))
+	draw_rect(Rect2(pos + Vector2(8, 8), Vector2(16, 16)), Color("#e3d3b8"))
 
 
 func _draw_desk(pos: Vector2) -> void:
-	draw_rect(Rect2(pos + Vector2(2, 3), Vector2(60, 32)), Color(0.05, 0.04, 0.03, 0.22))
-	draw_rect(Rect2(pos, Vector2(60, 30)), Color("#624a35"))
-	draw_rect(Rect2(pos + Vector2(10, -16), Vector2(34, 18)), Color("#26323d"))
-	draw_rect(Rect2(pos + Vector2(13, -13), Vector2(28, 12)), Color("#9fc6d0"))
-	draw_rect(Rect2(pos + Vector2(42, 6), Vector2(10, 12)), Color("#f1d379"))
+	draw_rect(Rect2(pos + Vector2(4, 0), Vector2(64, 32)), Color(0.05, 0.04, 0.03, 0.22))
+	draw_rect(Rect2(pos, Vector2(64, 32)), Color("#624a35"))
+	draw_rect(Rect2(pos + Vector2(16, -16), Vector2(32, 16)), Color("#26323d"))
+	draw_rect(Rect2(pos + Vector2(16, -16), Vector2(32, 8)), Color("#9fc6d0"))
+	draw_rect(Rect2(pos + Vector2(48, 8), Vector2(8, 16)), Color("#f1d379"))
 
 
 func _draw_fridge(pos: Vector2) -> void:
-	draw_rect(Rect2(pos + Vector2(2, 3), Vector2(34, 54)), Color(0.05, 0.04, 0.03, 0.22))
-	draw_rect(Rect2(pos, Vector2(34, 54)), Color("#d7ded5"))
-	draw_rect(Rect2(pos, Vector2(34, 19)), Color("#c5d1cb"))
-	draw_rect(Rect2(pos + Vector2(26, 23), Vector2(3, 18)), Color("#6f7c78"))
+	draw_rect(Rect2(pos + Vector2(0, 4), Vector2(32, 48)), Color(0.05, 0.04, 0.03, 0.22))
+	draw_rect(Rect2(pos, Vector2(32, 48)), Color("#d7ded5"))
+	draw_rect(Rect2(pos, Vector2(32, 16)), Color("#c5d1cb"))
+	draw_rect(Rect2(pos + Vector2(24, 24), Vector2(4, 16)), Color("#6f7c78"))
 
 
 func _draw_rent_notice(pos: Vector2) -> void:
-	draw_rect(Rect2(pos + Vector2(2, 2), Vector2(34, 22)), Color(0.04, 0.03, 0.02, 0.18))
-	draw_rect(Rect2(pos, Vector2(34, 22)), Color("#efe0b2"))
-	draw_rect(Rect2(pos + Vector2(5, 5), Vector2(24, 3)), Color("#8a4b42"))
-	draw_rect(Rect2(pos + Vector2(5, 12), Vector2(18, 3)), Color("#6c5a48"))
+	draw_rect(Rect2(pos + Vector2(0, 0), Vector2(32, 32)), Color(0.04, 0.03, 0.02, 0.18))
+	draw_rect(Rect2(pos, Vector2(32, 32)), Color("#efe0b2"))
+	draw_rect(Rect2(pos + Vector2(8, 8), Vector2(16, 4)), Color("#8a4b42"))
+	draw_rect(Rect2(pos + Vector2(8, 16), Vector2(16, 4)), Color("#6c5a48"))
 
 
 func _draw_door(pos: Vector2) -> void:
-	draw_rect(Rect2(pos, Vector2(42, 12)), Color("#3c3028"))
-	draw_rect(Rect2(pos + Vector2(4, 2), Vector2(34, 8)), Color("#6b4e38"))
+	draw_rect(Rect2(pos, Vector2(48, 16)), Color("#3c3028"))
+	draw_rect(Rect2(pos + Vector2(8, 4), Vector2(32, 8)), Color("#6b4e38"))
 
 
 func _draw_window(pos: Vector2) -> void:
 	var lit := current_segment in ["evening", "late_night"]
-	draw_rect(Rect2(pos, Vector2(54, 24)), Color("#2d3b48"))
-	draw_rect(Rect2(pos + Vector2(4, 4), Vector2(20, 16)), Color("#f0ca7d") if lit else Color("#9ec2cf"))
-	draw_rect(Rect2(pos + Vector2(30, 4), Vector2(20, 16)), Color("#f0ca7d") if lit else Color("#9ec2cf"))
-	draw_line(pos + Vector2(27, 3), pos + Vector2(27, 21), Color("#41505d"), 1.0)
+	draw_rect(Rect2(pos, Vector2(48, 16)), Color("#2d3b48"))
+	draw_rect(Rect2(pos + Vector2(4, 4), Vector2(16, 8)), Color("#f0ca7d") if lit else Color("#9ec2cf"))
+	draw_rect(Rect2(pos + Vector2(28, 4), Vector2(16, 8)), Color("#f0ca7d") if lit else Color("#9ec2cf"))
+	draw_line(pos + Vector2(24, 2), pos + Vector2(24, 14), Color("#41505d"), 1.0)
 
 
 func _draw_room_light(room: Rect2) -> void:
@@ -165,9 +163,9 @@ func _create_boundaries() -> void:
 
 func _create_furniture_collisions() -> void:
 	var origin := get_world_rect().position
-	_add_collision_rect("bed_collision", origin + Vector2(34, 80), Vector2(70, 50))
-	_add_collision_rect("desk_collision", origin + Vector2(184, 56), Vector2(60, 46))
-	_add_collision_rect("fridge_collision", origin + Vector2(218, 142), Vector2(34, 54))
+	_add_collision_rect("bed_collision", origin + Vector2(32, 80), Vector2(64, 48))
+	_add_collision_rect("desk_collision", origin + Vector2(176, 48), Vector2(64, 48))
+	_add_collision_rect("fridge_collision", origin + Vector2(224, 144), Vector2(32, 48))
 
 
 func _create_interactables() -> void:

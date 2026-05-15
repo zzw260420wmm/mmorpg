@@ -36,17 +36,15 @@ func set_weather(weather_key: String) -> void:
 
 func _draw() -> void:
 	var room := get_world_rect()
-	draw_rect(Rect2(room.position + Vector2(5, 6), room.size), Color(0.03, 0.04, 0.05, 0.28))
+	var wall_rect := Rect2(room.position + Vector2(16, 16), Vector2(room.size.x - 32, 48))
+	var floor_rect := Rect2(room.position + Vector2(16, 64), Vector2(room.size.x - 32, room.size.y - 80))
+	draw_rect(Rect2(room.position + Vector2(4, 4), room.size), Color(0.03, 0.04, 0.05, 0.28))
 	draw_rect(room, Color("#5d6870"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), room.size - Vector2(20, 20)), Color("#7d8588"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), Vector2(room.size.x - 20, 52)), Color("#56636c"))
-	ArtAssetsScript.draw_tiled_rect(self, "office_tile", Rect2(room.position + Vector2(10, 68), room.size - Vector2(20, 86)), Color(1, 1, 1, 0.85))
-	ArtAssetsScript.draw_tiled_rect(self, "metro_tile", Rect2(room.position + Vector2(10, 10), Vector2(room.size.x - 20, 52)), Color(1, 1, 1, 0.62))
-
-	for x in range(9):
-		draw_line(room.position + Vector2(22 + x * 38, 70), room.position + Vector2(22 + x * 38, room.size.y - 18), Color(0.37, 0.42, 0.43, 0.36), 1.0)
-	for y in range(5):
-		draw_line(room.position + Vector2(16, 86 + y * 38), room.position + Vector2(room.size.x - 16, 86 + y * 38), Color(0.37, 0.42, 0.43, 0.36), 1.0)
+	draw_rect(Rect2(room.position + Vector2(16, 16), room.size - Vector2(32, 32)), Color("#7d8588"))
+	draw_rect(wall_rect, Color("#56636c"))
+	ArtAssetsScript.draw_tiled_rect(self, "office_tile", floor_rect, Color(1, 1, 1, 0.85))
+	ArtAssetsScript.draw_tiled_rect(self, "metro_tile", wall_rect, Color(1, 1, 1, 0.62))
+	ArtAssetsScript.draw_pixel_grid(self, floor_rect, ArtAssetsScript.TILE_SIZE, Color(0.37, 0.42, 0.43, 0.30))
 
 	_draw_windows(room.position + Vector2(28, 22))
 	_draw_windows(room.position + Vector2(230, 22))
@@ -66,8 +64,8 @@ func _draw() -> void:
 func _draw_windows(pos: Vector2) -> void:
 	var lit := current_segment in ["evening", "late_night"]
 	for i in range(3):
-		draw_rect(Rect2(pos + Vector2(i * 38, 0), Vector2(30, 26)), Color("#d9ecf2") if not lit else Color("#ffe2a1"))
-		draw_line(pos + Vector2(i * 38 + 14, 2), pos + Vector2(i * 38 + 14, 24), Color("#53636f"), 1.0)
+		draw_rect(Rect2(pos + Vector2(i * 32, 0), Vector2(24, 24)), Color("#d9ecf2") if not lit else Color("#ffe2a1"))
+		draw_line(pos + Vector2(i * 32 + 12, 2), pos + Vector2(i * 32 + 12, 22), Color("#53636f"), 1.0)
 
 
 func _draw_workstation(pos: Vector2, color_hex: String, label: String) -> void:

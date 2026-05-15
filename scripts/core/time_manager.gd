@@ -8,6 +8,9 @@ signal weather_changed(weather_key: String, weather_label: String)
 
 const SEGMENT_KEYS := ["morning", "afternoon", "evening", "late_night"]
 const SEGMENT_LABELS := ["上午", "下午", "晚上", "深夜"]
+const SEGMENT_START_MINUTES := [360, 720, 1080, 0]
+const MINUTES_PER_SEGMENT := 360
+const REAL_TIME_SPEED := 96.0
 const WEATHER_SEQUENCE := ["overcast", "rain", "clear", "rain", "overcast"]
 const WEATHER_LABELS := {
 	"clear": "晴天",
@@ -15,7 +18,7 @@ const WEATHER_LABELS := {
 	"rain": "下雨",
 }
 
-@export var seconds_per_segment := 72.0
+@export var seconds_per_segment := float(MINUTES_PER_SEGMENT * 60) / REAL_TIME_SPEED
 
 var month := 6
 var day := 1
@@ -40,6 +43,7 @@ var last_work_performance := "未工作"
 var worked_this_day := false
 var time_paused := false
 var flow_multiplier := 1.0
+var last_emitted_clock_minute := -1
 
 
 func _ready() -> void:
@@ -52,6 +56,10 @@ func _process(delta: float) -> void:
 	if time_paused:
 		return
 	elapsed_in_segment += delta
+	var clock_minute := get_clock_total_minutes()
+	if clock_minute != last_emitted_clock_minute:
+		last_emitted_clock_minute = clock_minute
+		_emit_status()
 	if elapsed_in_segment >= _get_segment_duration():
 		elapsed_in_segment = 0.0
 		_advance_segment()
@@ -69,6 +77,18 @@ func get_date_label() -> String:
 	return "%02d/%02d" % [month, day]
 
 
+func get_clock_total_minutes() -> int:
+	var segment_duration := maxf(0.001, _get_segment_duration())
+	var segment_progress := clampf(elapsed_in_segment / segment_duration, 0.0, 0.999)
+	var minutes_into_segment := int(floor(segment_progress * float(MINUTES_PER_SEGMENT)))
+	return (SEGMENT_START_MINUTES[segment_index] + minutes_into_segment) % 1440
+
+
+func get_clock_label() -> String:
+	var total_minutes := get_clock_total_minutes()
+	return "%02d:%02d" % [total_minutes / 60, total_minutes % 60]
+
+
 func get_weather_label() -> String:
 	return WEATHER_LABELS.get(weather_key, "阴天")
 
@@ -80,6 +100,8 @@ func is_rainy() -> bool:
 func get_status() -> Dictionary:
 	return {
 		"date": get_date_label(),
+		"clock": get_clock_label(),
+		"time_speed": int(REAL_TIME_SPEED),
 		"segment": get_segment_label(),
 		"segment_key": get_segment_key(),
 		"weather": get_weather_label(),
@@ -219,12 +241,16 @@ func record_work_performance(performance_label: String) -> void:
 	_emit_status()
 
 
-func sleep_to_next_day() -> void:
+func sleep_to_next_day(target_energy: int = -1, stress_relief: int = 28) -> void:
 	day += 1
 	segment_index = 0
 	elapsed_in_segment = 0.0
-	energy = max_energy
-	stress = max(0, stress - 28)
+	last_emitted_clock_minute = -1
+	if target_energy < 0:
+		energy = max_energy
+	else:
+		energy = clampi(max(energy, target_energy), 0, max_energy)
+	stress = max(0, stress - stress_relief)
 	last_work_performance = "未工作"
 	worked_this_day = false
 	_advance_weather()

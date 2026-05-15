@@ -36,17 +36,15 @@ func set_weather(weather_key: String) -> void:
 
 func _draw() -> void:
 	var room := get_world_rect()
-	draw_rect(Rect2(room.position + Vector2(6, 7), room.size), Color(0.03, 0.02, 0.03, 0.30))
+	var wall_rect := Rect2(room.position + Vector2(16, 16), Vector2(room.size.x - 32, 48))
+	var floor_rect := Rect2(room.position + Vector2(16, 80), Vector2(room.size.x - 32, room.size.y - 96))
+	draw_rect(Rect2(room.position + Vector2(4, 4), room.size), Color(0.03, 0.02, 0.03, 0.30))
 	draw_rect(room, Color("#655363"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), room.size - Vector2(20, 20)), Color("#806f7d"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), Vector2(room.size.x - 20, 54)), Color("#514657"))
-	ArtAssetsScript.draw_tiled_rect(self, "media_floor", Rect2(room.position + Vector2(10, 76), room.size - Vector2(20, 94)), Color(1, 1, 1, 0.82))
-	ArtAssetsScript.draw_tiled_rect(self, "media_wall", Rect2(room.position + Vector2(10, 10), Vector2(room.size.x - 20, 54)), Color(1, 1, 1, 0.74))
-
-	for x in range(10):
-		draw_line(room.position + Vector2(20 + x * 38, 76), room.position + Vector2(20 + x * 38, room.size.y - 18), Color(0.28, 0.23, 0.29, 0.36), 1.0)
-	for y in range(5):
-		draw_line(room.position + Vector2(18, 92 + y * 38), room.position + Vector2(room.size.x - 18, 92 + y * 38), Color(0.28, 0.23, 0.29, 0.36), 1.0)
+	draw_rect(Rect2(room.position + Vector2(16, 16), room.size - Vector2(32, 32)), Color("#806f7d"))
+	draw_rect(wall_rect, Color("#514657"))
+	ArtAssetsScript.draw_tiled_rect(self, "media_floor", floor_rect, Color(1, 1, 1, 0.82))
+	ArtAssetsScript.draw_tiled_rect(self, "media_wall", wall_rect, Color(1, 1, 1, 0.74))
+	ArtAssetsScript.draw_pixel_grid(self, floor_rect, ArtAssetsScript.TILE_SIZE, Color(0.28, 0.23, 0.29, 0.30))
 
 	_draw_city_windows(room.position + Vector2(28, 23))
 	_draw_live_set(room.position + Vector2(42, 98))
@@ -64,8 +62,8 @@ func _draw() -> void:
 func _draw_city_windows(pos: Vector2) -> void:
 	var lit := current_segment in ["evening", "late_night"]
 	for i in range(4):
-		draw_rect(Rect2(pos + Vector2(i * 44, 0), Vector2(34, 26)), Color("#d8eef2") if not lit else Color("#ffe1a1"))
-		draw_line(pos + Vector2(i * 44 + 16, 2), pos + Vector2(i * 44 + 16, 24), Color("#5c5361"), 1.0)
+		draw_rect(Rect2(pos + Vector2(i * 48, 0), Vector2(32, 24)), Color("#d8eef2") if not lit else Color("#ffe1a1"))
+		draw_line(pos + Vector2(i * 48 + 16, 2), pos + Vector2(i * 48 + 16, 22), Color("#5c5361"), 1.0)
 
 
 func _draw_live_set(pos: Vector2) -> void:

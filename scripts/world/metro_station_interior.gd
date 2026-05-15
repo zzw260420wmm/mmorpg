@@ -36,11 +36,12 @@ func set_weather(weather_key: String) -> void:
 
 func _draw() -> void:
 	var room := get_world_rect()
-	draw_rect(Rect2(room.position + Vector2(6, 7), room.size), Color(0.02, 0.03, 0.04, 0.32))
+	var platform_rect := Rect2(room.position + Vector2(16, 144), Vector2(room.size.x - 32, room.size.y - 160))
+	draw_rect(Rect2(room.position + Vector2(4, 4), room.size), Color(0.02, 0.03, 0.04, 0.32))
 	draw_rect(room, Color("#46586a"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), room.size - Vector2(20, 20)), Color("#536577"))
-	ArtAssetsScript.draw_tiled_rect(self, "metro_tile", Rect2(room.position + Vector2(10, 76), room.size - Vector2(20, 100)), Color(1, 1, 1, 0.86))
-	ArtAssetsScript.draw_tiled_rect(self, "wet_asphalt", Rect2(room.position + Vector2(16, 40), Vector2(room.size.x - 32, 72)), Color(1, 1, 1, 0.70))
+	draw_rect(Rect2(room.position + Vector2(16, 16), room.size - Vector2(32, 32)), Color("#536577"))
+	ArtAssetsScript.draw_tiled_rect(self, "metro_tile", platform_rect, Color(1, 1, 1, 0.86))
+	ArtAssetsScript.draw_tiled_rect(self, "wet_asphalt", Rect2(room.position + Vector2(16, 48), Vector2(room.size.x - 32, 64)), Color(1, 1, 1, 0.70))
 
 	_draw_tracks(room)
 	_draw_floor_grid(room)
@@ -53,23 +54,21 @@ func _draw() -> void:
 
 
 func _draw_tracks(room: Rect2) -> void:
-	var track_rect := Rect2(room.position + Vector2(16, 40), Vector2(room.size.x - 32, 72))
+	var track_rect := Rect2(room.position + Vector2(16, 48), Vector2(room.size.x - 32, 64))
 	draw_rect(track_rect, Color("#24313d"))
 	for i in range(3):
-		var y := track_rect.position.y + 18 + i * 18
+		var y := track_rect.position.y + 16 + i * 16
 		draw_line(Vector2(track_rect.position.x + 18, y), Vector2(track_rect.end.x - 18, y), Color("#7d8790"), 2.0)
-	for i in range(14):
-		var x := track_rect.position.x + 28 + i * 36
-		draw_rect(Rect2(Vector2(x, track_rect.position.y + 10), Vector2(12, 54)), Color("#3c4650"))
-	draw_rect(Rect2(room.position + Vector2(16, 118), Vector2(room.size.x - 32, 8)), Color("#d5b642"))
+	for i in range(16):
+		var x := track_rect.position.x + 24 + i * 32
+		draw_rect(Rect2(Vector2(x, track_rect.position.y + 8), Vector2(8, 48)), Color("#3c4650"))
+	draw_rect(Rect2(room.position + Vector2(16, 112), Vector2(room.size.x - 32, 16)), Color("#d5b642"))
 	draw_rect(Rect2(room.position + Vector2(16, 128), Vector2(room.size.x - 32, 4)), Color("#6c5a48"))
 
 
 func _draw_floor_grid(room: Rect2) -> void:
-	for x in range(13):
-		draw_line(room.position + Vector2(24 + x * 42, 136), room.position + Vector2(24 + x * 42, room.size.y - 18), Color(0.28, 0.35, 0.39, 0.34), 1.0)
-	for y in range(6):
-		draw_line(room.position + Vector2(16, 150 + y * 38), room.position + Vector2(room.size.x - 16, 150 + y * 38), Color(0.28, 0.35, 0.39, 0.34), 1.0)
+	var platform_rect := Rect2(room.position + Vector2(16, 144), Vector2(room.size.x - 32, room.size.y - 160))
+	ArtAssetsScript.draw_pixel_grid(self, platform_rect, ArtAssetsScript.TILE_SIZE, Color(0.28, 0.35, 0.39, 0.30))
 
 
 func _draw_station_signage(room: Rect2) -> void:

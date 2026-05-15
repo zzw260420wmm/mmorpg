@@ -68,6 +68,11 @@ const ICON_REGIONS := {
 	"work": Rect2(80, 0, 16, 16),
 	"delivery": Rect2(96, 0, 16, 16),
 	"stream": Rect2(112, 0, 16, 16),
+	"character": Rect2(0, 16, 16, 16),
+	"contacts": Rect2(0, 16, 16, 16),
+	"bag": Rect2(16, 16, 16, 16),
+	"city": Rect2(32, 16, 16, 16),
+	"tasks": Rect2(48, 16, 16, 16),
 }
 
 
@@ -114,6 +119,22 @@ static func draw_character_centered(canvas: CanvasItem, name: String, center: Ve
 static func draw_icon(canvas: CanvasItem, name: String, top_left: Vector2, scale: float = 1.0, modulate: Color = Color.WHITE) -> void:
 	var region: Rect2 = ICON_REGIONS.get(name, ICON_REGIONS["work"])
 	canvas.draw_texture_rect_region(ICON_ATLAS_TEXTURE, Rect2(top_left, region.size * scale), region, modulate)
+
+
+static func make_icon_texture(name: String) -> AtlasTexture:
+	var texture := AtlasTexture.new()
+	texture.atlas = ICON_ATLAS_TEXTURE
+	texture.region = ICON_REGIONS.get(name, ICON_REGIONS["work"])
+	return texture
+
+
+static func draw_pixel_grid(canvas: CanvasItem, rect: Rect2, step: int = TILE_SIZE, color: Color = Color(0.0, 0.0, 0.0, 0.18)) -> void:
+	for x in range(1, int(floor(rect.size.x / float(step)))):
+		var px := rect.position.x + x * step
+		canvas.draw_line(Vector2(px, rect.position.y), Vector2(px, rect.end.y), color, 1.0)
+	for y in range(1, int(floor(rect.size.y / float(step)))):
+		var py := rect.position.y + y * step
+		canvas.draw_line(Vector2(rect.position.x, py), Vector2(rect.end.x, py), color, 1.0)
 
 
 static func draw_tiled_rect(canvas: CanvasItem, tile_name: String, rect: Rect2, modulate: Color = Color.WHITE) -> void:

@@ -36,57 +36,56 @@ func set_weather(weather_key: String) -> void:
 
 func _draw() -> void:
 	var room := get_world_rect()
-	draw_rect(Rect2(room.position + Vector2(5, 6), room.size), Color(0.03, 0.04, 0.04, 0.28))
+	var wall_rect := Rect2(room.position + Vector2(16, 16), Vector2(room.size.x - 32, 48))
+	var floor_rect := Rect2(room.position + Vector2(16, 64), Vector2(room.size.x - 32, room.size.y - 80))
+	draw_rect(Rect2(room.position + Vector2(4, 4), room.size), Color(0.03, 0.04, 0.04, 0.28))
 	draw_rect(room, Color("#668a7d"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), room.size - Vector2(20, 20)), Color("#d7ded5"))
-	draw_rect(Rect2(room.position + Vector2(10, 10), Vector2(room.size.x - 20, 50)), Color("#6d8d83"))
-	ArtAssetsScript.draw_tiled_rect(self, "office_tile", Rect2(room.position + Vector2(10, 66), room.size - Vector2(20, 84)), Color(1, 1, 1, 0.66))
-	for x in range(8):
-		draw_line(room.position + Vector2(22 + x * 40, 72), room.position + Vector2(22 + x * 40, room.size.y - 18), Color(0.47, 0.55, 0.54, 0.25), 1.0)
-	for y in range(4):
-		draw_line(room.position + Vector2(16, 86 + y * 36), room.position + Vector2(room.size.x - 16, 86 + y * 36), Color(0.47, 0.55, 0.54, 0.25), 1.0)
-	_draw_reception(room.position + Vector2(32, 86))
-	_draw_waiting_chairs(room.position + Vector2(220, 92))
-	_draw_notice_board(room.position + Vector2(224, 28))
-	_draw_consult_room(room.position + Vector2(38, 160))
-	_draw_exit(room.position + Vector2(154, 218))
+	draw_rect(Rect2(room.position + Vector2(16, 16), room.size - Vector2(32, 32)), Color("#d7ded5"))
+	draw_rect(wall_rect, Color("#6d8d83"))
+	ArtAssetsScript.draw_tiled_rect(self, "office_tile", floor_rect, Color(1, 1, 1, 0.66))
+	ArtAssetsScript.draw_pixel_grid(self, floor_rect, ArtAssetsScript.TILE_SIZE, Color(0.47, 0.55, 0.54, 0.22))
+	_draw_reception(room.position + Vector2(32, 80))
+	_draw_waiting_chairs(room.position + Vector2(224, 96))
+	_draw_notice_board(room.position + Vector2(224, 32))
+	_draw_consult_room(room.position + Vector2(32, 160))
+	_draw_exit(room.position + Vector2(160, 224))
 	if current_segment == "late_night":
 		draw_rect(room, Color(0.08, 0.12, 0.18, 0.16))
 
 
 func _draw_reception(pos: Vector2) -> void:
-	draw_rect(Rect2(pos + Vector2(3, 4), Vector2(126, 52)), Color(0.03, 0.03, 0.03, 0.20))
-	draw_rect(Rect2(pos, Vector2(126, 50)), Color("#e9fff7"))
-	draw_rect(Rect2(pos + Vector2(12, 10), Vector2(34, 18)), Color("#26313d"))
-	draw_rect(Rect2(pos + Vector2(16, 13), Vector2(26, 12)), Color("#9fc6d0"))
-	draw_rect(Rect2(pos + Vector2(66, 12), Vector2(16, 16)), Color("#c76b6d"))
-	draw_rect(Rect2(pos + Vector2(60, 18), Vector2(28, 5)), Color("#c76b6d"))
+	draw_rect(Rect2(pos + Vector2(4, 4), Vector2(128, 48)), Color(0.03, 0.03, 0.03, 0.20))
+	draw_rect(Rect2(pos, Vector2(128, 48)), Color("#e9fff7"))
+	draw_rect(Rect2(pos + Vector2(16, 8), Vector2(32, 16)), Color("#26313d"))
+	draw_rect(Rect2(pos + Vector2(16, 12), Vector2(24, 8)), Color("#9fc6d0"))
+	draw_rect(Rect2(pos + Vector2(64, 16), Vector2(32, 8)), Color("#c76b6d"))
+	draw_rect(Rect2(pos + Vector2(72, 8), Vector2(16, 24)), Color("#c76b6d"))
 
 
 func _draw_waiting_chairs(pos: Vector2) -> void:
 	for i in range(3):
-		draw_rect(Rect2(pos + Vector2(i * 34, 0), Vector2(24, 18)), Color("#536577"))
-		draw_rect(Rect2(pos + Vector2(i * 34 + 4, 18), Vector2(4, 16)), Color("#344a50"))
-		draw_rect(Rect2(pos + Vector2(i * 34 + 16, 18), Vector2(4, 16)), Color("#344a50"))
-	ArtAssetsScript.draw_character_frame(self, "metro_commuter", pos + Vector2(36, 34), false, 0.68, Color(1, 1, 1, 0.88), Vector2.LEFT)
+		draw_rect(Rect2(pos + Vector2(i * 32, 0), Vector2(24, 16)), Color("#536577"))
+		draw_rect(Rect2(pos + Vector2(i * 32 + 4, 16), Vector2(4, 16)), Color("#344a50"))
+		draw_rect(Rect2(pos + Vector2(i * 32 + 16, 16), Vector2(4, 16)), Color("#344a50"))
+	ArtAssetsScript.draw_character_frame(self, "metro_commuter", pos + Vector2(32, 32), false, 0.68, Color(1, 1, 1, 0.88), Vector2.LEFT)
 
 
 func _draw_notice_board(pos: Vector2) -> void:
-	draw_rect(Rect2(pos, Vector2(102, 34)), Color("#f5e5bd"))
-	draw_rect(Rect2(pos + Vector2(8, 8), Vector2(34, 4)), Color("#3d635f"))
-	draw_rect(Rect2(pos + Vector2(8, 18), Vector2(52, 4)), Color("#8a4b42"))
-	draw_rect(Rect2(pos + Vector2(68, 8), Vector2(20, 18)), Color("#d8fff0"))
+	draw_rect(Rect2(pos, Vector2(96, 32)), Color("#f5e5bd"))
+	draw_rect(Rect2(pos + Vector2(8, 8), Vector2(32, 4)), Color("#3d635f"))
+	draw_rect(Rect2(pos + Vector2(8, 16), Vector2(48, 4)), Color("#8a4b42"))
+	draw_rect(Rect2(pos + Vector2(64, 8), Vector2(16, 16)), Color("#d8fff0"))
 
 
 func _draw_consult_room(pos: Vector2) -> void:
-	draw_rect(Rect2(pos, Vector2(110, 42)), Color("#b8d8c4"))
-	draw_rect(Rect2(pos + Vector2(12, 10), Vector2(42, 20)), Color("#e9fff7"))
-	draw_rect(Rect2(pos + Vector2(70, 8), Vector2(24, 24)), Color("#4d635f"))
+	draw_rect(Rect2(pos, Vector2(112, 48)), Color("#b8d8c4"))
+	draw_rect(Rect2(pos + Vector2(16, 16), Vector2(32, 16)), Color("#e9fff7"))
+	draw_rect(Rect2(pos + Vector2(64, 8), Vector2(32, 32)), Color("#4d635f"))
 
 
 func _draw_exit(pos: Vector2) -> void:
-	draw_rect(Rect2(pos, Vector2(62, 12)), Color("#2f4c4a"))
-	draw_rect(Rect2(pos + Vector2(5, 2), Vector2(52, 8)), Color("#d8fff0"))
+	draw_rect(Rect2(pos, Vector2(64, 16)), Color("#2f4c4a"))
+	draw_rect(Rect2(pos + Vector2(8, 4), Vector2(48, 8)), Color("#d8fff0"))
 
 
 func _create_boundaries() -> void:
@@ -100,9 +99,9 @@ func _create_boundaries() -> void:
 
 func _create_furniture_collisions() -> void:
 	var origin := get_world_rect().position
-	_add_collision_rect("clinic_reception_collision", origin + Vector2(32, 86), Vector2(126, 50))
-	_add_collision_rect("clinic_chairs_collision", origin + Vector2(220, 92), Vector2(96, 34))
-	_add_collision_rect("clinic_consult_collision", origin + Vector2(38, 160), Vector2(110, 42))
+	_add_collision_rect("clinic_reception_collision", origin + Vector2(32, 80), Vector2(128, 48))
+	_add_collision_rect("clinic_chairs_collision", origin + Vector2(224, 96), Vector2(96, 32))
+	_add_collision_rect("clinic_consult_collision", origin + Vector2(32, 160), Vector2(112, 48))
 
 
 func _create_interactables() -> void:
