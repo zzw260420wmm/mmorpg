@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://bb4t2gm4gb7nk"]
+
+[ext_resource type="Script" path="res://scripts/world/clinic_interior.gd" id="1_clinic"]
+[ext_resource type="TileSet" path="res://assets/tiles/urban_life_tileset.tres" id="2_tileset"]
+
+[node name="ClinicInterior" type="Node2D"]
+script = ExtResource("1_clinic")
+
+[node name="ClinicTileMap" type="TileMap" parent="."]
+z_index = -20
+position = Vector2(520, 416)
+texture_filter = 1
+tile_set = ExtResource("2_tileset")
+format = 2

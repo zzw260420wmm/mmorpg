@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bd34j1bibh481"]
+
+[ext_resource type="Script" path="res://scripts/world/reference_road_tilemap.gd" id="1_script"]
+[ext_resource type="TileSet" path="res://assets/tiles/screenshot_road_tileset_64.tres" id="2_tileset"]
+
+[node name="ReferenceRoadTilemap" type="Node2D"]
+
+[node name="RoadTileMap" type="TileMap" parent="."]
+texture_filter = 1
+script = ExtResource("1_script")
+tile_set = ExtResource("2_tileset")
+format = 2

@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "project": "Shanghai Drift Life Demo",
+  "art_direction": {
+    "camera": "top-down or three-quarter top-down 2D",
+    "style": "grounded slice-of-life anime, East Asian indie game sensibility, high-quality game art",
+    "palette": [
+      "warm gray",
+      "muted blue",
+      "faded green",
+      "tungsten yellow",
+      "rainy asphalt",
+      "aged concrete"
+    ],
+    "avoid": [
+      "cyberpunk overload",
+      "fantasy",
+      "sci-fi",
+      "post-apocalypse",
+      "gacha styling",
+      "hyper-saturated colors",
+      "logos",
+      "watermarks",
+      "unrequested readable text"
+    ]
+  },
+  "assets": [
+    {
+      "id": "apartment_room_concept_v1",
+      "priority": 1,
+      "type": "concept_reference",
+      "output_path": "res://assets/art/image2/outputs/apartment_room_concept_v1.png",
+      "target_width": 2048,
+      "target_height": 1152,
+      "brief": "res://assets/art/image2/briefs/01_apartment_pack_prompts.md#concept-prompt",
+      "integration": "visual reference only"
+    },
+    {
+      "id": "apartment_tileset_v1",
+      "priority": 1,
+      "type": "tileset_atlas",
+      "output_path": "res://assets/art/image2/godot/apartment_tileset_v1.png",
+      "target_width": 512,
+      "target_height": 256,
+      "cell_width": 64,
+      "cell_height": 64,
+      "columns": 8,
+      "rows": 4,
+      "brief": "res://assets/art/image2/briefs/01_apartment_pack_prompts.md#tileset-prompt",
+      "current_reference": "res://assets/tiles/apartment_hd_tileset.png",
+      "integration": "duplicate apartment_hd_tileset.tres and point it to this PNG"
+    },
+    {
+      "id": "apartment_props_v1",
+      "priority": 1,
+      "type": "prop_atlas",
+      "output_path": "res://assets/art/image2/godot/apartment_props_v1.png",
+      "target_width": 512,
+      "target_height": 384,
+      "cell_width": 128,
+      "cell_height": 128,
+      "columns": 4,
+      "rows": 3,
+      "brief": "res://assets/art/image2/briefs/01_apartment_pack_prompts.md#prop-atlas-prompt",
+      "current_reference": "res://assets/sprites/apartment_hd_props.png",
+      "integration": "keep apartment prop region map unchanged if layout matches"
+    },
+    {
+      "id": "urban_tileset_v1",
+      "priority": 2,
+      "type": "tileset_atlas",
+      "output_path": "res://assets/art/image2/godot/urban_tileset_v1.png",
+      "target_width": 512,
+      "target_height": 256,
+      "cell_width": 64,
+      "cell_height": 64,
+      "columns": 8,
+      "rows": 4,
+      "current_reference": "res://assets/tiles/urban_life_tileset.png",
+      "integration": "requires new TileSet resource and region map"
+    },
+    {
+      "id": "urban_props_v1",
+      "priority": 2,
+      "type": "prop_atlas",
+      "output_path": "res://assets/art/image2/godot/urban_props_v1.png",
+      "target_width": 1024,
+      "target_height": 512,
+      "cell_width": 128,
+      "cell_height": 128,
+      "columns": 8,
+      "rows": 4,
+      "current_reference": "res://assets/sprites/urban_props_atlas.png",
+      "integration": "requires new prop atlas constants or replacement layout"
+    },
+    {
+      "id": "characters_v1",
+      "priority": 3,
+      "type": "character_atlas",
+      "output_path": "res://assets/art/image2/godot/characters_v1.png",
+      "target_width": 512,
+      "target_height": 512,
+      "cell_width": 64,
+      "cell_height": 64,
+      "columns": 8,
+      "rows": 8,
+      "current_reference": "res://assets/sprites/characters_atlas.png",
+      "integration": "requires character size update or downsample pass"
+    },
+    {
+      "id": "hud_icons_v1",
+      "priority": 4,
+      "type": "ui_icon_atlas",
+      "output_path": "res://assets/art/image2/godot/hud_icons_v1.png",
+      "target_width": 256,
+      "target_height": 64,
+      "cell_width": 32,
+      "cell_height": 32,
+      "columns": 8,
+      "rows": 2,
+      "current_reference": "res://assets/ui/hud_icons.png",
+      "integration": "requires icon size update or downsample pass"
+    }
+  ]
+}
+

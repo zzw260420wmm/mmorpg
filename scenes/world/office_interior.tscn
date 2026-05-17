@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dujc7obs0c0j4"]
+
+[ext_resource type="Script" path="res://scripts/world/office_interior.gd" id="1_office"]
+[ext_resource type="TileSet" path="res://assets/tiles/urban_life_tileset.tres" id="2_tileset"]
+
+[node name="OfficeInterior" type="Node2D"]
+script = ExtResource("1_office")
+
+[node name="OfficeTileMap" type="TileMap" parent="."]
+z_index = -20
+position = Vector2(512, 176)
+texture_filter = 1
+tile_set = ExtResource("2_tileset")
+format = 2

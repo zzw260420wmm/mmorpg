@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bo7vgffsxsnvx"]
+
+[ext_resource type="Script" uid="uid://dndc4j7266uhx" path="res://scripts/world/apartment_interior.gd" id="1_apartment"]
+[ext_resource type="TileSet" uid="uid://dw82io03gvy44" path="res://assets/tiles/apartment_hd_tileset.tres" id="2_tileset"]
+
+[node name="ApartmentInterior" type="Node2D" unique_id=1185424513]
+script = ExtResource("1_apartment")
+
+[node name="RoomEditGuide" type="Polygon2D" parent="." unique_id=1808099117]
+z_index = -20
+color = Color(0.24, 0.19, 0.14, 0.35)
+polygon = PackedVector2Array(176, 96, 464, 96, 464, 320, 176, 320)
+
+[node name="ApartmentTileMap" type="TileMap" parent="." unique_id=350016931]
+z_index = -10
+position = Vector2(192, 112)
+texture_filter = 1
+tile_set = ExtResource("2_tileset")
+format = 2
+layer_0/tile_data = PackedInt32Array(131072, 458752, 2, 131073, 458752, 2, 131074, 458752, 2, 131075, 458752, 2, 131076, 458752, 2, 65537, 458752, 2, 1, 458752, 2, 2, 458752, 2, 65539, 458752, 2, 65540, 458752, 2, 65538, 458752, 2, 65536, 458752, 2, 0, 458752, 2, 4, 458752, 2, 3, 458752, 2)

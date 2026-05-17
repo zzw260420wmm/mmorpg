@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://b8r3i50q57gk2"]
+
+[ext_resource type="Script" path="res://scripts/world/wet_market_interior.gd" id="1_market"]
+[ext_resource type="TileSet" path="res://assets/tiles/urban_life_tileset.tres" id="2_tileset"]
+
+[node name="WetMarketInterior" type="Node2D"]
+script = ExtResource("1_market")
+
+[node name="WetMarketTileMap" type="TileMap" parent="."]
+z_index = -20
+position = Vector2(176, 416)
+texture_filter = 1
+tile_set = ExtResource("2_tileset")
+format = 2

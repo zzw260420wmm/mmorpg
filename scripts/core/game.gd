@@ -1,16 +1,44 @@
 extends Node2D
 
 const TimeManagerScript := preload("res://scripts/core/time_manager.gd")
-const CityMapScript := preload("res://scripts/world/city_map.gd")
-const ApartmentInteriorScript := preload("res://scripts/world/apartment_interior.gd")
-const OfficeInteriorScript := preload("res://scripts/world/office_interior.gd")
-const MediaCompanyInteriorScript := preload("res://scripts/world/media_company_interior.gd")
-const MetroStationInteriorScript := preload("res://scripts/world/metro_station_interior.gd")
-const WetMarketInteriorScript := preload("res://scripts/world/wet_market_interior.gd")
-const ClinicInteriorScript := preload("res://scripts/world/clinic_interior.gd")
+const CityMapScene := preload("res://scenes/world/city_map.tscn")
+const ChangchunMapScene := preload("res://scenes/world/changchun_map.tscn")
+const XianMapScene := preload("res://scenes/world/xian_map.tscn")
+const ChengduMapScene := preload("res://scenes/world/chengdu_map.tscn")
+const HangzhouMapScene := preload("res://scenes/world/hangzhou_map.tscn")
+const QikaiDistrictMapScene := preload("res://scenes/world/qikai_district_map.tscn")
+const FawFactoryMapScene := preload("res://scenes/world/faw_factory_map.tscn")
+const TangChanganMapScene := preload("res://scenes/world/tang_changan_map.tscn")
+const RepublicShanghaiMapScene := preload("res://scenes/world/republic_shanghai_map.tscn")
+const ApartmentInteriorScene := preload("res://scenes/world/apartment_interior.tscn")
+const OfficeInteriorScene := preload("res://scenes/world/office_interior.tscn")
+const MediaCompanyInteriorScene := preload("res://scenes/world/media_company_interior.tscn")
+const MetroStationInteriorScene := preload("res://scenes/world/metro_station_interior.tscn")
+const WetMarketInteriorScene := preload("res://scenes/world/wet_market_interior.tscn")
+const ClinicInteriorScene := preload("res://scenes/world/clinic_interior.tscn")
 const PlayerScene := preload("res://scenes/player/player.tscn")
 const NpcScene := preload("res://scenes/npc/npc.tscn")
 const HudScene := preload("res://scenes/ui/hud.tscn")
+
+const STREET_HOME := Vector2(348, 382)
+const STREET_STORE := Vector2(1238, 382)
+const STREET_RESTAURANT := Vector2(858, 1018)
+const STREET_METRO := Vector2(2138, 1218)
+const STREET_OFFICE := Vector2(3540, 642)
+const STREET_OFFICE_COFFEE := Vector2(3936, 1408)
+const STREET_DELIVERY_STATION := Vector2(2976, 1408)
+const STREET_DELIVERY_PICKUP := Vector2(858, 1018)
+const STREET_DELIVERY_DROPOFF := Vector2(4700, 642)
+const STREET_MEDIA := Vector2(2784, 386)
+const STREET_MARKET := Vector2(670, 2494)
+const STREET_CLINIC := Vector2(1438, 2366)
+const STREET_TALENT_APARTMENT := Vector2(4700, 642)
+const STREET_RENTAL_AGENCY := Vector2(4512, 1664)
+const STREET_PEOPLE_SQUARE := Vector2(2304, 960)
+const STREET_BUND := Vector2(5150, 980)
+const STREET_LUJIAZUI := Vector2(5570, 880)
+const STREET_HIGH_SPEED_RAIL := Vector2(5880, 1740)
+const STREET_REPUBLIC_SHANGHAI := Vector2(5340, 1300)
 
 var time_manager: TimeManager
 var city_map: CityMap
@@ -20,19 +48,29 @@ var media_company: MediaCompanyInterior
 var metro_station: MetroStationInterior
 var wet_market: WetMarketInterior
 var clinic: ClinicInterior
+var qikai_district: QikaiDistrictMap
+var faw_factory: FawFactoryMap
+var tang_changan: HistoricalCityMap
+var republic_shanghai: HistoricalCityMap
 var player: Player
 var hud: GameHUD
 var canvas_modulate: CanvasModulate
 var npcs: Array[LifeNpc] = []
 var current_location := "street"
+var current_city_id := "shanghai"
+var regional_city_maps: Dictionary = {}
 var last_street_position := Vector2.ZERO
-var office_return_position := Vector2(1088, 278)
-var media_return_position := Vector2(896, 214)
-var metro_return_position := Vector2(720, 468)
-var market_return_position := Vector2(272, 790)
-var clinic_return_position := Vector2(528, 726)
+var office_return_position: Vector2 = STREET_OFFICE
+var media_return_position: Vector2 = STREET_MEDIA
+var metro_return_position: Vector2 = STREET_METRO
+var market_return_position: Vector2 = STREET_MARKET
+var clinic_return_position: Vector2 = STREET_CLINIC
+var qikai_district_return_position := Vector2(288, 352)
+var faw_factory_return_position := Vector2(1120, 288)
+var tang_changan_return_position := Vector2(1120, 352)
+var republic_shanghai_return_position := STREET_REPUBLIC_SHANGHAI + Vector2(0, 84)
 var active_housing_id := "urban_village"
-var home_street_position := Vector2(152, 190)
+var home_street_position: Vector2 = STREET_HOME
 var housing_sleep_energy := 100
 var housing_sleep_stress_relief := 28
 var housing_fridge_energy := 8
@@ -46,6 +84,11 @@ var npc_social_profiles := {}
 var talked_today := {}
 var pending_morning_notice: Array[String] = []
 var inventory_items: Array[Dictionary] = []
+var reputation := 0
+var city_reputations: Dictionary = {}
+var owned_land: Array[String] = []
+var owned_companies: Array[String] = []
+var company_daily_income := 0
 
 
 func _ready() -> void:
@@ -59,46 +102,71 @@ func _ready() -> void:
 	canvas_modulate.name = "WorldLight"
 	add_child(canvas_modulate)
 
-	city_map = CityMapScript.new()
+	city_map = CityMapScene.instantiate() as CityMap
 	city_map.name = "ShanghaiVillageMap"
 	add_child(city_map)
+	_spawn_regional_city_maps()
 
-	apartment = ApartmentInteriorScript.new()
+	apartment = ApartmentInteriorScene.instantiate() as ApartmentInterior
 	apartment.name = "ApartmentInterior"
 	apartment.visible = false
 	apartment.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(apartment)
 	apartment.set_housing_variant(active_housing_id, "城中村合租")
 
-	office = OfficeInteriorScript.new()
+	office = OfficeInteriorScene.instantiate() as OfficeInterior
 	office.name = "OfficeInterior"
 	office.visible = false
 	office.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(office)
 
-	media_company = MediaCompanyInteriorScript.new()
+	media_company = MediaCompanyInteriorScene.instantiate() as MediaCompanyInterior
 	media_company.name = "MediaCompanyInterior"
 	media_company.visible = false
 	media_company.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(media_company)
 
-	metro_station = MetroStationInteriorScript.new()
+	metro_station = MetroStationInteriorScene.instantiate() as MetroStationInterior
 	metro_station.name = "MetroStationInterior"
 	metro_station.visible = false
 	metro_station.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(metro_station)
 
-	wet_market = WetMarketInteriorScript.new()
+	wet_market = WetMarketInteriorScene.instantiate() as WetMarketInterior
 	wet_market.name = "WetMarketInterior"
 	wet_market.visible = false
 	wet_market.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(wet_market)
 
-	clinic = ClinicInteriorScript.new()
+	clinic = ClinicInteriorScene.instantiate() as ClinicInterior
 	clinic.name = "ClinicInterior"
 	clinic.visible = false
 	clinic.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(clinic)
+
+	qikai_district = QikaiDistrictMapScene.instantiate() as QikaiDistrictMap
+	qikai_district.name = "QikaiDistrictMap"
+	qikai_district.visible = false
+	qikai_district.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(qikai_district)
+
+	faw_factory = FawFactoryMapScene.instantiate() as FawFactoryMap
+	faw_factory.name = "FawFactoryMap"
+	faw_factory.visible = false
+	faw_factory.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(faw_factory)
+
+	tang_changan = TangChanganMapScene.instantiate() as HistoricalCityMap
+	tang_changan.name = "TangChanganMap"
+	tang_changan.visible = false
+	tang_changan.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(tang_changan)
+
+	republic_shanghai = RepublicShanghaiMapScene.instantiate() as HistoricalCityMap
+	republic_shanghai.name = "RepublicShanghaiMap"
+	republic_shanghai.visible = false
+	republic_shanghai.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(republic_shanghai)
 
 	player = PlayerScene.instantiate() as Player
 	player.name = "Player"
@@ -116,6 +184,10 @@ func _ready() -> void:
 	_set_collision_tree_enabled(metro_station, false)
 	_set_collision_tree_enabled(wet_market, false)
 	_set_collision_tree_enabled(clinic, false)
+	_set_collision_tree_enabled(qikai_district, false)
+	_set_collision_tree_enabled(faw_factory, false)
+	_set_collision_tree_enabled(tang_changan, false)
+	_set_collision_tree_enabled(republic_shanghai, false)
 
 	hud = HudScene.instantiate() as GameHUD
 	add_child(hud)
@@ -137,6 +209,52 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_update_hud_navigation()
+
+
+func _spawn_regional_city_maps() -> void:
+	var configs: Array[Dictionary] = [
+		{"id": "changchun", "scene": ChangchunMapScene},
+		{"id": "xian", "scene": XianMapScene},
+		{"id": "chengdu", "scene": ChengduMapScene},
+		{"id": "hangzhou", "scene": HangzhouMapScene},
+	]
+	for config_index in range(configs.size()):
+		var config: Dictionary = configs[config_index]
+		var map_scene: PackedScene = config["scene"]
+		var regional_map: Node2D = map_scene.instantiate() as Node2D
+		regional_map.visible = false
+		regional_map.process_mode = Node.PROCESS_MODE_DISABLED
+		add_child(regional_map)
+		regional_city_maps[str(config["id"])] = regional_map
+		_set_collision_tree_enabled(regional_map, false)
+
+
+func _get_active_street_map() -> Node2D:
+	if current_city_id == "shanghai":
+		return city_map
+	return regional_city_maps.get(current_city_id, city_map) as Node2D
+
+
+func _set_street_map_active(city_id: String) -> void:
+	city_map.visible = city_id == "shanghai"
+	city_map.process_mode = Node.PROCESS_MODE_INHERIT if city_id == "shanghai" else Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(city_map, city_id == "shanghai")
+	var regional_keys: Array = regional_city_maps.keys()
+	for regional_index in range(regional_keys.size()):
+		var regional_id := str(regional_keys[regional_index])
+		var regional_map: Node2D = regional_city_maps[regional_id] as Node2D
+		var is_active := regional_id == city_id
+		regional_map.visible = is_active
+		regional_map.process_mode = Node.PROCESS_MODE_INHERIT if is_active else Node.PROCESS_MODE_DISABLED
+		_set_collision_tree_enabled(regional_map, is_active)
+	_set_npcs_enabled(city_id == "shanghai")
+
+
+func _set_npcs_enabled(enabled: bool) -> void:
+	for npc in npcs:
+		npc.visible = enabled
+		npc.process_mode = Node.PROCESS_MODE_INHERIT if enabled else Node.PROCESS_MODE_DISABLED
+		_set_collision_tree_enabled(npc, enabled)
 
 
 func show_dialogue(speaker: String, lines: Array) -> void:
@@ -174,6 +292,17 @@ func open_shop(source: Node) -> void:
 		if interactable_id is String:
 			source_id = interactable_id
 	hud.show_shop(shop_title, _get_shop_items(source_id))
+
+
+func open_high_speed_rail(source: Node) -> void:
+	player.set_controls_enabled(false)
+	time_manager.set_time_paused(true)
+	var station_title := "高铁站"
+	if source != null:
+		var display_name: Variant = source.get("display_name")
+		if display_name is String and not display_name.is_empty():
+			station_title = display_name
+	hud.show_shop(station_title, _get_high_speed_rail_tickets())
 
 
 func enter_apartment() -> void:
@@ -415,6 +544,161 @@ func exit_clinic() -> void:
 	_update_time_flow()
 
 
+func enter_qikai_district_from(source: Node) -> void:
+	if current_city_id != "changchun":
+		show_dialogue("汽开区班车", ["这条线路从长春市区发车。"])
+		return
+	if source is Node2D:
+		var source_2d: Node2D = source as Node2D
+		qikai_district_return_position = source_2d.global_position + Vector2(0, 84)
+	current_location = "qikai_district"
+	var active_map := _get_active_street_map()
+	if active_map != null:
+		active_map.visible = false
+		active_map.process_mode = Node.PROCESS_MODE_DISABLED
+		_set_collision_tree_enabled(active_map, false)
+	_set_npcs_enabled(false)
+	qikai_district.visible = true
+	qikai_district.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(qikai_district, true)
+	player.global_position = qikai_district.get_player_spawn()
+	player.set_camera_limits(qikai_district.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func exit_qikai_district() -> void:
+	current_location = "street"
+	current_city_id = "changchun"
+	qikai_district.visible = false
+	qikai_district.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(qikai_district, false)
+	_set_street_map_active("changchun")
+	player.global_position = qikai_district_return_position
+	var active_map := _get_active_street_map()
+	if active_map != null and active_map.has_method("get_world_rect"):
+		var active_rect: Rect2 = active_map.call("get_world_rect")
+		player.set_camera_limits(active_rect)
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func enter_faw_factory_from(source: Node) -> void:
+	if current_location != "qikai_district":
+		show_dialogue("厂区入口", ["第一汽车制造厂入口在汽开区北侧。"])
+		return
+	if source is Node2D:
+		var source_2d: Node2D = source as Node2D
+		faw_factory_return_position = source_2d.global_position + Vector2(0, 84)
+	current_location = "faw_factory"
+	qikai_district.visible = false
+	qikai_district.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(qikai_district, false)
+	_set_npcs_enabled(false)
+	faw_factory.visible = true
+	faw_factory.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(faw_factory, true)
+	player.global_position = faw_factory.get_player_spawn()
+	player.set_camera_limits(faw_factory.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func exit_faw_factory() -> void:
+	current_location = "qikai_district"
+	current_city_id = "changchun"
+	faw_factory.visible = false
+	faw_factory.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(faw_factory, false)
+	qikai_district.visible = true
+	qikai_district.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(qikai_district, true)
+	player.global_position = faw_factory_return_position
+	player.set_camera_limits(qikai_district.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func enter_tang_changan_from(source: Node) -> void:
+	if current_city_id != "xian":
+		show_dialogue("唐长安遗址入口", ["这处入口只在西安的城市记忆里显现。"])
+		return
+	if source is Node2D:
+		var source_2d: Node2D = source as Node2D
+		tang_changan_return_position = source_2d.global_position + Vector2(0, 84)
+	current_location = "tang_changan"
+	var active_map := _get_active_street_map()
+	if active_map != null:
+		active_map.visible = false
+		active_map.process_mode = Node.PROCESS_MODE_DISABLED
+		_set_collision_tree_enabled(active_map, false)
+	tang_changan.visible = true
+	tang_changan.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(tang_changan, true)
+	player.global_position = tang_changan.get_player_spawn()
+	player.set_camera_limits(tang_changan.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func exit_tang_changan() -> void:
+	current_location = "street"
+	current_city_id = "xian"
+	tang_changan.visible = false
+	tang_changan.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(tang_changan, false)
+	_set_street_map_active("xian")
+	player.global_position = tang_changan_return_position
+	var active_map := _get_active_street_map()
+	if active_map != null and active_map.has_method("get_world_rect"):
+		var active_rect: Rect2 = active_map.call("get_world_rect")
+		player.set_camera_limits(active_rect)
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func enter_republic_shanghai_from(source: Node) -> void:
+	if current_city_id != "shanghai":
+		show_dialogue("民国上海旧影", ["这段城市旧影只在上海街头显现。"])
+		return
+	if source is Node2D:
+		var source_2d: Node2D = source as Node2D
+		republic_shanghai_return_position = source_2d.global_position + Vector2(0, 84)
+	current_location = "republic_shanghai"
+	city_map.visible = false
+	city_map.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(city_map, false)
+	_set_npcs_enabled(false)
+	republic_shanghai.visible = true
+	republic_shanghai.process_mode = Node.PROCESS_MODE_INHERIT
+	_set_collision_tree_enabled(republic_shanghai, true)
+	player.global_position = republic_shanghai.get_player_spawn()
+	player.set_camera_limits(republic_shanghai.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
+func exit_republic_shanghai() -> void:
+	current_location = "street"
+	current_city_id = "shanghai"
+	republic_shanghai.visible = false
+	republic_shanghai.process_mode = Node.PROCESS_MODE_DISABLED
+	_set_collision_tree_enabled(republic_shanghai, false)
+	_set_street_map_active("shanghai")
+	player.global_position = republic_shanghai_return_position
+	player.set_camera_limits(city_map.get_world_rect())
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	_update_time_flow()
+
+
 func request_commute_work() -> void:
 	player.set_controls_enabled(false)
 	var fare: int = time_manager.commute_fare
@@ -439,7 +723,7 @@ func request_commute_work() -> void:
 		return
 
 	_apply_commute_time_jump()
-	office_return_position = Vector2(1088, 278)
+	office_return_position = STREET_OFFICE
 	enter_office(true)
 	var commute_lines := [
 		_get_commute_line(),
@@ -488,15 +772,18 @@ func request_job_work(job_id: String) -> void:
 		hud.show_dialogue(job_name, fail_lines)
 		return
 	time_manager.add_stress(stress_gain)
+	var reputation_gain: int = _get_work_reputation_gain(job_id, performance)
+	_add_reputation(reputation_gain)
 	if current_location == "media_company":
-		media_return_position = Vector2(896, 214)
+		media_return_position = STREET_MEDIA
 		exit_media_company()
 	else:
-		office_return_position = Vector2(1088, 278)
+		office_return_position = STREET_OFFICE
 		exit_office()
 	var result_lines: Array = [str(work_result["work_line"])]
 	result_lines.append_array(event_lines)
 	result_lines.append("结果：%s。收入 +%d，体力 -%d，压力 +%d。" % [performance, wage, energy_cost, stress_gain])
+	result_lines.append("%s声望 +%d。%s" % [_get_city_name(current_city_id), reputation_gain, _get_city_reputation_label(current_city_id)])
 	result_lines.append(_get_work_return_line(job_id))
 	hud.show_dialogue(job_name, result_lines)
 
@@ -515,7 +802,7 @@ func request_fridge_food() -> void:
 func request_pay_rent() -> void:
 	player.set_controls_enabled(false)
 	if time_manager.pay_rent():
-		var timing_line := "转账完成。房租 -%d。" % time_manager.rent_amount
+		var timing_line: String = "转账完成。房租 -%d。" % time_manager.rent_amount
 		if time_manager.get_rent_due_in_days() > time_manager.rent_cycle_days:
 			timing_line = "你提前交了房租。房租 -%d。" % time_manager.rent_amount
 		time_manager.add_stress(8 - housing_rent_stress_relief)
@@ -786,11 +1073,16 @@ func request_delivery_dropoff() -> void:
 	delivery_orders_completed_today += 1
 	time_manager.add_money(max(35, reward))
 	time_manager.add_stress(stress_gain)
+	var reputation_gain := 1
+	if performance == "专注":
+		reputation_gain = 2
+	_add_reputation(reputation_gain)
 	time_manager.record_work_performance("外卖%s" % performance)
 	time_manager.set_segment("evening")
 	var result_lines := [
 		line,
 		"结果：%s。收入 +%d，体力 -%d，压力 +%d。" % [performance, max(35, reward), energy_cost, stress_gain],
+		"%s声望 +%d。稳定完成城市里的小任务，也会慢慢被看见。" % [_get_city_name(current_city_id), reputation_gain],
 		"这趟结束了。你可以恢复一下、买补给，或者回家。",
 	]
 	if not bonus_line.is_empty():
@@ -821,13 +1113,13 @@ func _spawn_npcs() -> void:
 			"id": "landlord",
 			"name": "陈房东",
 			"role": "landlord",
-			"position": Vector2(204, 214),
+			"position": STREET_HOME + Vector2(48, 24),
 			"palette": {"hair": Color("#3a3029"), "skin": Color("#c49167"), "shirt": Color("#8d7560")},
 			"routes": {
-				"morning": [Vector2(206, 214), Vector2(216, 258), Vector2(154, 258), Vector2(154, 214)],
-				"afternoon": [Vector2(188, 198), Vector2(236, 226), Vector2(1280, 576), Vector2(218, 276)],
-				"evening": [Vector2(132, 204), Vector2(202, 204)],
-				"late_night": [Vector2(118, 190)],
+				"morning": [STREET_HOME + Vector2(48, 24), STREET_HOME + Vector2(64, 86), STREET_HOME + Vector2(-36, 86), STREET_HOME],
+				"afternoon": [STREET_HOME + Vector2(36, 20), STREET_RENTAL_AGENCY, STREET_TALENT_APARTMENT, STREET_HOME + Vector2(78, 96)],
+				"evening": [STREET_HOME + Vector2(-42, 14), STREET_HOME + Vector2(52, 18)],
+				"late_night": [STREET_HOME + Vector2(-30, 0)],
 			},
 			"dialogue": {
 				"default": ["房租不只是数字，它决定你还有多少喘气的空间。"],
@@ -841,13 +1133,13 @@ func _spawn_npcs() -> void:
 			"id": "shopkeeper",
 			"name": "林阿姨",
 			"role": "shopkeeper",
-			"position": Vector2(612, 222),
+			"position": STREET_STORE + Vector2(-32, 40),
 			"palette": {"hair": Color("#25262b"), "skin": Color("#d6a373"), "shirt": Color("#3f806f")},
 			"routes": {
-				"morning": [Vector2(612, 222), Vector2(704, 222), Vector2(272, 768)],
-				"afternoon": [Vector2(636, 212), Vector2(710, 212), Vector2(710, 248)],
-				"evening": [Vector2(618, 228), Vector2(690, 228), Vector2(690, 252)],
-				"late_night": [Vector2(646, 214)],
+				"morning": [STREET_STORE + Vector2(-32, 40), STREET_STORE + Vector2(90, 40), STREET_MARKET],
+				"afternoon": [STREET_STORE + Vector2(10, 28), STREET_STORE + Vector2(96, 30), STREET_STORE + Vector2(96, 72)],
+				"evening": [STREET_STORE + Vector2(-20, 52), STREET_STORE + Vector2(76, 52), STREET_STORE + Vector2(76, 84)],
+				"late_night": [STREET_STORE + Vector2(20, 36)],
 			},
 			"dialogue": {
 				"default": ["买的东西会先进包里，等日子咬人的时候再用。"],
@@ -861,13 +1153,13 @@ func _spawn_npcs() -> void:
 			"id": "girl",
 			"name": "小米",
 			"role": "drifter",
-			"position": Vector2(332, 260),
+			"position": Vector2(760, 960),
 			"palette": {"hair": Color("#241b22"), "skin": Color("#d8a17b"), "shirt": Color("#c55b70")},
 			"routes": {
-				"morning": [Vector2(170, 248), Vector2(380, 296), Vector2(704, 382)],
-				"afternoon": [Vector2(338, 286), Vector2(528, 704), Vector2(316, 360)],
-				"evening": [Vector2(716, 386), Vector2(1344, 278), Vector2(658, 218)],
-				"late_night": [Vector2(656, 238), Vector2(520, 268), Vector2(340, 354)],
+				"morning": [STREET_HOME + Vector2(-20, 128), Vector2(960, 960), STREET_METRO + Vector2(-60, -40)],
+				"afternoon": [Vector2(820, 1120), STREET_CLINIC, Vector2(1160, 1160)],
+				"evening": [STREET_METRO + Vector2(-80, -30), STREET_TALENT_APARTMENT, STREET_STORE + Vector2(40, 40)],
+				"late_night": [STREET_STORE + Vector2(10, 66), Vector2(1500, 880), Vector2(940, 1120)],
 			},
 			"dialogue": {
 				"default": ["这里的人一直在动。你停太久，城市就会开始问你问题。"],
@@ -881,13 +1173,13 @@ func _spawn_npcs() -> void:
 			"id": "delivery_captain",
 			"name": "赵队",
 			"role": "delivery_rider",
-			"position": Vector2(1044, 520),
+			"position": STREET_DELIVERY_STATION + Vector2(64, 18),
 			"palette": {"hair": Color("#1f2428"), "skin": Color("#c49167"), "shirt": Color("#d29b2e")},
 			"routes": {
-				"morning": [Vector2(1044, 520), Vector2(1118, 496), Vector2(1216, 512)],
-				"afternoon": [Vector2(1038, 520), Vector2(1120, 548), Vector2(1210, 532)],
-				"evening": [Vector2(1084, 518), Vector2(1216, 512), Vector2(1078, 552)],
-				"late_night": [Vector2(1052, 520), Vector2(1070, 520)],
+				"morning": [STREET_DELIVERY_STATION + Vector2(64, 18), STREET_OFFICE_COFFEE + Vector2(-20, 22), STREET_RESTAURANT],
+				"afternoon": [STREET_DELIVERY_STATION + Vector2(56, 22), STREET_OFFICE_COFFEE + Vector2(20, 46), STREET_RENTAL_AGENCY],
+				"evening": [STREET_DELIVERY_STATION + Vector2(110, 18), STREET_OFFICE_COFFEE, STREET_DELIVERY_STATION + Vector2(100, 54)],
+				"late_night": [STREET_DELIVERY_STATION + Vector2(72, 20), STREET_DELIVERY_STATION + Vector2(92, 20)],
 			},
 			"dialogue": {
 				"default": ["单子来钱快，但城市先收你的体力。"],
@@ -901,13 +1193,13 @@ func _spawn_npcs() -> void:
 			"id": "streamer_npc",
 			"name": "露娜",
 			"role": "streamer",
-			"position": Vector2(936, 220),
+			"position": STREET_MEDIA + Vector2(48, 28),
 			"palette": {"hair": Color("#2b2527"), "skin": Color("#d8a17b"), "shirt": Color("#c26c74")},
 			"routes": {
-				"morning": [Vector2(936, 220), Vector2(902, 220), Vector2(930, 252)],
-				"afternoon": [Vector2(934, 222), Vector2(1012, 316), Vector2(1216, 512)],
-				"evening": [Vector2(936, 220), Vector2(960, 220), Vector2(936, 220)],
-				"late_night": [Vector2(934, 224), Vector2(900, 224)],
+				"morning": [STREET_MEDIA + Vector2(48, 28), STREET_MEDIA + Vector2(-20, 28), STREET_MEDIA + Vector2(32, 72)],
+				"afternoon": [STREET_MEDIA + Vector2(44, 30), STREET_PEOPLE_SQUARE, STREET_OFFICE_COFFEE],
+				"evening": [STREET_MEDIA + Vector2(48, 28), STREET_MEDIA + Vector2(90, 28), STREET_MEDIA + Vector2(48, 28)],
+				"late_night": [STREET_MEDIA + Vector2(46, 32), STREET_MEDIA + Vector2(-24, 32)],
 			},
 			"dialogue": {
 				"default": ["镜头喜欢自信，算法喜欢耗尽的人。"],
@@ -921,13 +1213,13 @@ func _spawn_npcs() -> void:
 			"id": "office_worker_npc",
 			"name": "徐同事",
 			"role": "office_worker",
-			"position": Vector2(1088, 330),
+			"position": STREET_OFFICE + Vector2(0, 88),
 			"palette": {"hair": Color("#24292f"), "skin": Color("#d6a373"), "shirt": Color("#5d6870")},
 			"routes": {
-				"morning": [Vector2(716, 386), Vector2(1050, 330), Vector2(1138, 318)],
-				"afternoon": [Vector2(1088, 278), Vector2(1216, 512), Vector2(1280, 576), Vector2(1088, 278)],
-				"evening": [Vector2(1088, 278), Vector2(1344, 278), Vector2(716, 386)],
-				"late_night": [Vector2(1138, 318), Vector2(1038, 336)],
+				"morning": [STREET_METRO + Vector2(-60, -40), STREET_OFFICE + Vector2(-54, 88), STREET_OFFICE + Vector2(88, 76)],
+				"afternoon": [STREET_OFFICE, STREET_OFFICE_COFFEE, STREET_RENTAL_AGENCY, STREET_OFFICE],
+				"evening": [STREET_OFFICE, STREET_TALENT_APARTMENT, STREET_METRO + Vector2(-70, -34)],
+				"late_night": [STREET_OFFICE + Vector2(88, 76), STREET_OFFICE + Vector2(-82, 94)],
 			},
 			"dialogue": {
 				"default": ["白领工作大多是在选择哪种压力先暴露出来。"],
@@ -941,13 +1233,13 @@ func _spawn_npcs() -> void:
 			"id": "metro_commuter_npc",
 			"name": "孙通勤",
 			"role": "metro_commuter",
-			"position": Vector2(706, 386),
+			"position": STREET_METRO + Vector2(-16, -36),
 			"palette": {"hair": Color("#3b302b"), "skin": Color("#c49167"), "shirt": Color("#6b7280")},
 			"routes": {
-				"morning": [Vector2(650, 398), Vector2(706, 386), Vector2(742, 390)],
-				"afternoon": [Vector2(704, 382), Vector2(528, 704), Vector2(704, 382)],
-				"evening": [Vector2(742, 390), Vector2(706, 386), Vector2(650, 398)],
-				"late_night": [Vector2(704, 382), Vector2(718, 382)],
+				"morning": [STREET_METRO + Vector2(-76, -20), STREET_METRO + Vector2(-16, -36), STREET_METRO + Vector2(42, -28)],
+				"afternoon": [STREET_METRO + Vector2(-18, -40), STREET_CLINIC, STREET_METRO + Vector2(-18, -40)],
+				"evening": [STREET_METRO + Vector2(42, -28), STREET_METRO + Vector2(-16, -36), STREET_METRO + Vector2(-76, -20)],
+				"late_night": [STREET_METRO + Vector2(-18, -40), STREET_METRO + Vector2(8, -40)],
 			},
 			"dialogue": {
 				"default": ["地铁不在乎你的计划，只在乎你有没有赶到闸机前。"],
@@ -990,13 +1282,13 @@ func register_npc_talk(npc_id: String) -> String:
 	var event_line := _get_relationship_event_line(npc_id, old_value, current_value)
 	var relationship_gain: int = current_value - old_value
 	if npc_id == "landlord":
-		var landlord_line := "和房东聊了几句。关系 +%d，压力 -%d。%s。%s" % [relationship_gain, stress_relief, _get_relationship_summary_line(npc_id), _get_landlord_rent_line()]
+		var landlord_line: String = "和房东聊了几句。关系 +%d，压力 -%d。%s。%s" % [relationship_gain, stress_relief, _get_relationship_summary_line(npc_id), _get_landlord_rent_line()]
 		if not event_line.is_empty():
 			return "%s %s" % [landlord_line, event_line]
 		return landlord_line
 	var profile: Dictionary = npc_social_profiles.get(npc_id, {})
-	var npc_name := str(profile.get("name", "对方"))
-	var talk_line := "你和%s在街边短短聊了一会儿。关系 +%d，压力 -%d。%s。" % [npc_name, relationship_gain, stress_relief, _get_relationship_summary_line(npc_id)]
+	var npc_name: String = str(profile.get("name", "对方"))
+	var talk_line: String = "你和%s在街边短短聊了一会儿。关系 +%d，压力 -%d。%s。" % [npc_name, relationship_gain, stress_relief, _get_relationship_summary_line(npc_id)]
 	if not event_line.is_empty():
 		return "%s %s" % [talk_line, event_line]
 	return talk_line
@@ -1027,6 +1319,16 @@ func _on_status_changed(status: Dictionary) -> void:
 		display_status["talked_today_count"] = talked_today.size()
 		display_status["npc_count"] = npc_relationships.size()
 		display_status["relationship_perks"] = _get_relationship_perk_lines()
+		reputation = _get_total_reputation()
+		display_status["reputation"] = reputation
+		display_status["reputation_label"] = _get_reputation_label()
+		display_status["city_name"] = _get_city_name(current_city_id)
+		display_status["city_reputation"] = _get_city_reputation(current_city_id)
+		display_status["city_reputation_label"] = _get_city_reputation_label(current_city_id)
+		display_status["city_reputations"] = _get_city_reputation_snapshot()
+		display_status["owned_land"] = _get_owned_land_snapshot()
+		display_status["owned_companies"] = _get_owned_company_snapshot()
+		display_status["company_daily_income"] = company_daily_income
 		hud.update_status(display_status)
 		hud.update_function_bar(display_status, _get_inventory_snapshot())
 		_update_hud_navigation()
@@ -1085,6 +1387,219 @@ func _get_relationship_value(npc_id: String) -> int:
 	return int(npc_relationships.get(npc_id, 0))
 
 
+func _add_reputation(amount: int) -> void:
+	if amount <= 0:
+		return
+	_add_city_reputation(current_city_id, amount, false)
+	reputation = _get_total_reputation()
+	if time_manager != null:
+		_on_status_changed(time_manager.get_status())
+
+
+func _add_city_reputation(city_id: String, amount: int, refresh_status: bool = true) -> void:
+	if amount <= 0:
+		return
+	var key := city_id
+	if key.is_empty():
+		key = "shanghai"
+	var current_value: int = int(city_reputations.get(key, 0))
+	city_reputations[key] = clampi(current_value + amount, 0, 100)
+	reputation = _get_total_reputation()
+	if refresh_status and time_manager != null:
+		_on_status_changed(time_manager.get_status())
+
+
+func _get_city_reputation(city_id: String) -> int:
+	return int(city_reputations.get(city_id, 0))
+
+
+func _get_total_reputation() -> int:
+	var total: int = 0
+	var values: Array = city_reputations.values()
+	for value_index in range(values.size()):
+		total += int(values[value_index])
+	return clampi(total, 0, 500)
+
+
+func _get_city_reputation_label(city_id: String) -> String:
+	var value: int = _get_city_reputation(city_id)
+	if value >= 70:
+		return "城市名片"
+	if value >= 40:
+		return "地方熟人"
+	if value >= 15:
+		return "被人记住"
+	return "初来乍到"
+
+
+func _get_city_reputation_snapshot() -> Array[Dictionary]:
+	var city_ids: PackedStringArray = PackedStringArray(["shanghai", "changchun", "xian", "chengdu", "hangzhou"])
+	var snapshot: Array[Dictionary] = []
+	for city_id in city_ids:
+		snapshot.append({
+			"id": city_id,
+			"name": _get_city_name(city_id),
+			"value": _get_city_reputation(city_id),
+			"label": _get_city_reputation_label(city_id),
+		})
+	return snapshot
+
+
+func _get_reputation_label() -> String:
+	var total: int = _get_total_reputation()
+	if total >= 180:
+		return "跨城名片"
+	if total >= 90:
+		return "多城口碑"
+	if total >= 30:
+		return "被城市记住"
+	return "无人认识"
+
+
+func _get_work_reputation_gain(job_id: String, performance: String) -> int:
+	var gain := 1
+	if performance == "专注":
+		gain = 3
+	elif performance == "稳定":
+		gain = 2
+	if job_id == "job_sales":
+		gain += 1
+	if job_id == "job_streamer":
+		gain += 1
+	return gain
+
+
+func _get_land_profile(land_id: String) -> Dictionary:
+	match land_id:
+		"night_market_booth":
+			return {"name": "夜市摊位", "required_reputation": 10, "price": 1800}
+		"community_shopfront":
+			return {"name": "社区小门面", "required_reputation": 25, "price": 4200}
+		_:
+			return {"name": "共享办公工位", "required_reputation": 5, "price": 900}
+
+
+func _get_company_profile(company_id: String) -> Dictionary:
+	match company_id:
+		"errand_studio":
+			return {
+				"name": "跑腿小队",
+				"land_id": "night_market_booth",
+				"required_reputation": 18,
+				"price": 2600,
+				"daily_income": 130,
+				"stress_relief": 0,
+			}
+		"media_studio":
+			return {
+				"name": "内容工作室",
+				"land_id": "community_shopfront",
+				"required_reputation": 35,
+				"price": 6200,
+				"daily_income": 260,
+				"stress_relief": -3,
+			}
+		_:
+			return {
+				"name": "代运营小公司",
+				"land_id": "shared_office_desk",
+				"required_reputation": 12,
+				"price": 1600,
+				"daily_income": 80,
+				"stress_relief": 0,
+			}
+
+
+func _get_owned_land_snapshot() -> Array[Dictionary]:
+	var snapshot: Array[Dictionary] = []
+	for land_id in owned_land:
+		var profile := _get_land_profile(land_id)
+		snapshot.append({"id": land_id, "name": str(profile.get("name", land_id))})
+	return snapshot
+
+
+func _get_owned_company_snapshot() -> Array[Dictionary]:
+	var snapshot: Array[Dictionary] = []
+	for company_id in owned_companies:
+		var profile := _get_company_profile(company_id)
+		snapshot.append({
+			"id": company_id,
+			"name": str(profile.get("name", company_id)),
+			"daily_income": int(profile.get("daily_income", 0)),
+		})
+	return snapshot
+
+
+func _collect_company_daily_income() -> int:
+	var total := 0
+	var stress_delta := 0
+	for company_id in owned_companies:
+		var profile := _get_company_profile(company_id)
+		total += int(profile.get("daily_income", 0))
+		stress_delta += int(profile.get("stress_relief", 0))
+	if total <= 0:
+		company_daily_income = 0
+		return 0
+	time_manager.add_money(total)
+	if stress_delta > 0:
+		time_manager.relieve_stress(stress_delta)
+	elif stress_delta < 0:
+		time_manager.add_stress(abs(stress_delta))
+	company_daily_income = total
+	return total
+
+
+func _apply_land_purchase(item: Dictionary) -> void:
+	var land_id: String = str(item.get("land_id", ""))
+	var profile := _get_land_profile(land_id)
+	var land_name: String = str(item.get("name", profile.get("name", "地皮")))
+	if owned_land.has(land_id):
+		hud.set_shop_message("已经买下：%s。" % land_name)
+		return
+	var required_reputation: int = int(item.get("required_reputation", profile.get("required_reputation", 0)))
+	var city_reputation: int = _get_city_reputation(current_city_id)
+	if city_reputation < required_reputation:
+		hud.set_shop_message("%s声望不足。需要 %d，当前 %d。" % [_get_city_name(current_city_id), required_reputation, city_reputation])
+		return
+	var price: int = int(item.get("price", profile.get("price", 0)))
+	if not time_manager.spend(price):
+		hud.set_shop_message("现金不足。买下 %s 需要 %d 元。" % [land_name, price])
+		return
+	owned_land.append(land_id)
+	_add_reputation(3)
+	_on_status_changed(time_manager.get_status())
+	hud.set_shop_message("已买下：%s。你可以用它开办公司。" % land_name)
+	hud.set_function_bar_message("新增资产：%s。城市信息里可以查看地皮和公司。" % land_name)
+
+
+func _apply_company_opening(item: Dictionary) -> void:
+	var company_id: String = str(item.get("company_id", ""))
+	var profile := _get_company_profile(company_id)
+	var company_name: String = str(item.get("name", profile.get("name", "公司")))
+	if owned_companies.has(company_id):
+		hud.set_shop_message("已经开办：%s。" % company_name)
+		return
+	var required_reputation: int = int(item.get("required_reputation", profile.get("required_reputation", 0)))
+	var city_reputation: int = _get_city_reputation(current_city_id)
+	if city_reputation < required_reputation:
+		hud.set_shop_message("%s声望不足。需要 %d，当前 %d。" % [_get_city_name(current_city_id), required_reputation, city_reputation])
+		return
+	var required_land: String = str(item.get("required_land", profile.get("land_id", "")))
+	if not owned_land.has(required_land):
+		var land_profile := _get_land_profile(required_land)
+		hud.set_shop_message("还缺少地皮：%s。" % str(land_profile.get("name", "地皮")))
+		return
+	var price: int = int(item.get("price", profile.get("price", 0)))
+	if not time_manager.spend(price):
+		hud.set_shop_message("现金不足。开办 %s 需要 %d 元。" % [company_name, price])
+		return
+	owned_companies.append(company_id)
+	_add_reputation(6)
+	_on_status_changed(time_manager.get_status())
+	hud.set_shop_message("已开办：%s。每日预计收入 +%d。" % [company_name, int(profile.get("daily_income", 0))])
+	hud.set_function_bar_message("公司成立：%s。从明天开始会产生经营收入。" % company_name)
+
+
 func _get_relationship_level(value: int) -> String:
 	if value >= 12:
 		return "可靠"
@@ -1137,9 +1652,9 @@ func _give_first_shareable_item(npc_id: String) -> String:
 		var item: Dictionary = inventory_items[i]
 		if int(item.get("energy", 0)) <= 0:
 			continue
-		var item_name := str(item.get("name", "食物"))
+		var item_name: String = str(item.get("name", "食物"))
 		var profile: Dictionary = npc_social_profiles.get(npc_id, {})
-		var npc_name := str(profile.get("name", "对方"))
+		var npc_name: String = str(profile.get("name", "对方"))
 		var old_value: int = _get_relationship_value(npc_id)
 		var gift_gain := 1
 		if int(item.get("stress_relief", 0)) >= 4:
@@ -1150,7 +1665,7 @@ func _give_first_shareable_item(npc_id: String) -> String:
 		_update_npc_relationship_visual(npc_id)
 		_on_status_changed(time_manager.get_status())
 		var event_line := _get_relationship_event_line(npc_id, old_value, new_value)
-		var gift_line := "你把%s分给了%s。关系 +%d。%s。" % [item_name, npc_name, new_value - old_value, _get_relationship_summary_line(npc_id)]
+		var gift_line: String = "你把%s分给了%s。关系 +%d。%s。" % [item_name, npc_name, new_value - old_value, _get_relationship_summary_line(npc_id)]
 		if not event_line.is_empty():
 			gift_line = "%s %s" % [gift_line, event_line]
 		return gift_line
@@ -1233,12 +1748,35 @@ func _get_active_world_rect() -> Rect2:
 			return wet_market.get_world_rect()
 		"clinic":
 			return clinic.get_world_rect()
+		"qikai_district":
+			return qikai_district.get_world_rect()
+		"faw_factory":
+			return faw_factory.get_world_rect()
+		"tang_changan":
+			return tang_changan.get_world_rect()
+		"republic_shanghai":
+			return republic_shanghai.get_world_rect()
 		_:
+			var active_map := _get_active_street_map()
+			if active_map != null and active_map.has_method("get_world_rect"):
+				var active_rect: Rect2 = active_map.call("get_world_rect")
+				return active_rect
 			return city_map.get_world_rect()
 
 
 func _get_minimap_points() -> Array[Dictionary]:
 	var points: Array[Dictionary] = []
+	if current_location == "street" and current_city_id != "shanghai":
+		var active_map := _get_active_street_map()
+		if active_map != null and active_map.has_method("get_station_position"):
+			var station_position: Vector2 = active_map.call("get_station_position")
+			points.append(_minimap_point(station_position, "metro", "高铁", Color("#a9d7ff"), 5.0))
+		if active_map != null and active_map.has_method("get_landmark_minimap_points"):
+			var landmark_points: Array = active_map.call("get_landmark_minimap_points")
+			for landmark_index in range(landmark_points.size()):
+				var landmark_point: Dictionary = landmark_points[landmark_index]
+				points.append(landmark_point)
+		return points
 	match current_location:
 		"apartment":
 			points.append(_minimap_point(Vector2(246, 240), "home", "床", Color("#d98a8a"), 4.0))
@@ -1263,20 +1801,38 @@ func _get_minimap_points() -> Array[Dictionary]:
 		"clinic":
 			points.append(_minimap_point(Vector2(616, 562), "clinic", "诊所", Color("#d8fff0"), 5.0))
 			points.append(_minimap_point(Vector2(704, 636), "exit", "出口", Color("#e8c879"), 4.0))
+		"qikai_district":
+			if qikai_district != null:
+				var qikai_points: Array[Dictionary] = qikai_district.get_minimap_points()
+				points.append_array(qikai_points)
+		"faw_factory":
+			if faw_factory != null:
+				var factory_points: Array[Dictionary] = faw_factory.get_minimap_points()
+				points.append_array(factory_points)
+		"tang_changan":
+			if tang_changan != null:
+				var tang_points: Array[Dictionary] = tang_changan.get_minimap_points()
+				points.append_array(tang_points)
+		"republic_shanghai":
+			if republic_shanghai != null:
+				var republic_points: Array[Dictionary] = republic_shanghai.get_minimap_points()
+				points.append_array(republic_points)
 		_:
 			points.append(_minimap_point(home_street_position, "home", "家", Color("#efc36f"), 4.0))
-			points.append(_minimap_point(Vector2(656, 202), "food", "便利", Color("#f5d37b"), 4.0))
-			points.append(_minimap_point(Vector2(720, 448), "metro", "地铁", Color("#a9d7ff"), 5.0))
-			points.append(_minimap_point(Vector2(1088, 278), "work", "公司", Color("#c7e7ff"), 5.0))
-			points.append(_minimap_point(Vector2(896, 512), "delivery", "配送", Color("#f3cf6b"), 4.0))
-			points.append(_minimap_point(Vector2(896, 192), "media", "传媒", Color("#ffc4d6"), 4.0))
-			points.append(_minimap_point(Vector2(272, 768), "food", "菜场", Color("#d8c886"), 4.0))
-			points.append(_minimap_point(Vector2(528, 704), "clinic", "诊所", Color("#d8fff0"), 4.0))
-			points.append(_minimap_point(Vector2(1344, 278), "home", "公寓", Color("#c7e7ff"), 4.0))
-			points.append(_minimap_point(Vector2(1280, 576), "rent", "中介", Color("#e8c879"), 4.0))
-			points.append(_minimap_point(Vector2(560, 228), "landmark", "人广", Color("#c4d8a8"), 3.6))
-			points.append(_minimap_point(Vector2(900, 252), "landmark", "外滩", Color("#a9d7ff"), 3.6))
-			points.append(_minimap_point(Vector2(1088, 366), "landmark", "陆家嘴", Color("#8fc4d4"), 3.8))
+			points.append(_minimap_point(STREET_STORE, "food", "便利", Color("#f5d37b"), 4.0))
+			points.append(_minimap_point(STREET_METRO, "metro", "地铁", Color("#a9d7ff"), 5.0))
+			points.append(_minimap_point(STREET_OFFICE, "work", "公司", Color("#c7e7ff"), 5.0))
+			points.append(_minimap_point(STREET_DELIVERY_STATION, "delivery", "配送", Color("#f3cf6b"), 4.0))
+			points.append(_minimap_point(STREET_MEDIA, "media", "传媒", Color("#ffc4d6"), 4.0))
+			points.append(_minimap_point(STREET_MARKET, "food", "菜场", Color("#d8c886"), 4.0))
+			points.append(_minimap_point(STREET_CLINIC, "clinic", "诊所", Color("#d8fff0"), 4.0))
+			points.append(_minimap_point(STREET_TALENT_APARTMENT, "home", "公寓", Color("#c7e7ff"), 4.0))
+			points.append(_minimap_point(STREET_RENTAL_AGENCY, "rent", "中介", Color("#e8c879"), 4.0))
+			points.append(_minimap_point(STREET_PEOPLE_SQUARE, "landmark", "人广", Color("#c4d8a8"), 3.6))
+			points.append(_minimap_point(STREET_BUND, "landmark", "外滩", Color("#a9d7ff"), 3.6))
+			points.append(_minimap_point(STREET_LUJIAZUI, "landmark", "陆家嘴", Color("#8fc4d4"), 3.8))
+			points.append(_minimap_point(STREET_HIGH_SPEED_RAIL, "metro", "高铁", Color("#a9d7ff"), 4.2))
+			points.append(_minimap_point(STREET_REPUBLIC_SHANGHAI, "history", "民国", Color("#a9d7ff"), 4.0))
 			for npc in npcs:
 				if npc.visible:
 					points.append(_minimap_point(npc.global_position, "npc", "NPC", Color("#f4dcb1"), 2.6))
@@ -1294,10 +1850,16 @@ func _minimap_point(position: Vector2, kind: String, label: String, color: Color
 
 
 func _get_minimap_objective() -> Dictionary:
+	if current_location == "street" and current_city_id != "shanghai":
+		var active_map := _get_active_street_map()
+		if active_map != null and active_map.has_method("get_station_position"):
+			var station_position: Vector2 = active_map.call("get_station_position")
+			return {"position": station_position}
+		return {}
 	if delivery_state == "accepted":
-		return {"position": Vector2(458, 440)}
+		return {"position": STREET_DELIVERY_PICKUP}
 	if delivery_state == "picked":
-		return {"position": Vector2(228, 206)}
+		return {"position": STREET_DELIVERY_DROPOFF}
 	if current_location == "office":
 		if time_manager.get_segment_key() in ["morning", "afternoon"] and not time_manager.worked_this_day:
 			return {"position": Vector2(704, 340)}
@@ -1320,22 +1882,36 @@ func _get_minimap_objective() -> Dictionary:
 			return {"position": Vector2(380, 582)}
 		"clinic":
 			return {"position": Vector2(616, 562)}
+		"qikai_district":
+			return {"position": qikai_district.get_factory_gate_position()}
+		"faw_factory":
+			return {"position": faw_factory.get_exit_spawn()}
+		"tang_changan":
+			return {"position": tang_changan.get_exit_spawn()}
+		"republic_shanghai":
+			return {"position": republic_shanghai.get_exit_spawn()}
 		_:
 			if time_manager.get_rent_due_in_days() <= 1:
 				return {"position": home_street_position}
 			if time_manager.energy < 45:
-				return {"position": Vector2(272, 768)}
+				return {"position": STREET_MARKET}
 			if time_manager.stress >= 60:
-				return {"position": Vector2(528, 704)}
+				return {"position": STREET_CLINIC}
 			if not time_manager.worked_this_day and time_manager.get_segment_key() in ["morning", "afternoon"]:
-				return {"position": Vector2(720, 448)}
+				return {"position": STREET_METRO}
 			if not time_manager.worked_this_day and time_manager.get_segment_key() == "evening":
-				return {"position": Vector2(896, 192)}
+				return {"position": STREET_MEDIA}
 	return {}
 
 func _on_time_segment_changed(segment_key: String, _segment_label: String) -> void:
 	if city_map != null:
 		city_map.set_time_segment(segment_key)
+	var regional_time_keys: Array = regional_city_maps.keys()
+	for regional_time_index in range(regional_time_keys.size()):
+		var regional_time_id := str(regional_time_keys[regional_time_index])
+		var regional_map: Node = regional_city_maps[regional_time_id] as Node
+		if regional_map != null and regional_map.has_method("set_time_segment"):
+			regional_map.call("set_time_segment", segment_key)
 	if apartment != null:
 		apartment.set_time_segment(segment_key)
 	if office != null:
@@ -1348,6 +1924,14 @@ func _on_time_segment_changed(segment_key: String, _segment_label: String) -> vo
 		wet_market.set_time_segment(segment_key)
 	if clinic != null:
 		clinic.set_time_segment(segment_key)
+	if qikai_district != null:
+		qikai_district.set_time_segment(segment_key)
+	if faw_factory != null:
+		faw_factory.set_time_segment(segment_key)
+	if tang_changan != null:
+		tang_changan.set_time_segment(segment_key)
+	if republic_shanghai != null:
+		republic_shanghai.set_time_segment(segment_key)
 	for npc in npcs:
 		npc.set_time_segment(segment_key)
 	_apply_world_light(segment_key)
@@ -1356,6 +1940,12 @@ func _on_time_segment_changed(segment_key: String, _segment_label: String) -> vo
 func _on_weather_changed(weather_key: String, _weather_label: String) -> void:
 	if city_map != null:
 		city_map.set_weather(weather_key)
+	var regional_weather_keys: Array = regional_city_maps.keys()
+	for regional_weather_index in range(regional_weather_keys.size()):
+		var regional_weather_id := str(regional_weather_keys[regional_weather_index])
+		var regional_map: Node = regional_city_maps[regional_weather_id] as Node
+		if regional_map != null and regional_map.has_method("set_weather"):
+			regional_map.call("set_weather", weather_key)
 	if apartment != null:
 		apartment.set_weather(weather_key)
 	if office != null:
@@ -1368,6 +1958,14 @@ func _on_weather_changed(weather_key: String, _weather_label: String) -> void:
 		wet_market.set_weather(weather_key)
 	if clinic != null:
 		clinic.set_weather(weather_key)
+	if qikai_district != null:
+		qikai_district.set_weather(weather_key)
+	if faw_factory != null:
+		faw_factory.set_weather(weather_key)
+	if tang_changan != null:
+		tang_changan.set_weather(weather_key)
+	if republic_shanghai != null:
+		republic_shanghai.set_weather(weather_key)
 	_apply_world_light(time_manager.get_segment_key())
 	_on_status_changed(time_manager.get_status())
 
@@ -1378,6 +1976,9 @@ func _on_day_started(_day: int) -> void:
 	delivery_orders_completed_today = 0
 	pending_morning_notice.clear()
 	pending_morning_notice.append(housing_morning_line)
+	var passive_income := _collect_company_daily_income()
+	if passive_income > 0:
+		pending_morning_notice.append("公司账户结算了一笔经营收入：+%d 元。城市声望越高，当地机会越多。" % passive_income)
 	if time_manager.get_rent_overdue_days() > 0:
 		pending_morning_notice.append_array([
 			"房租已经逾期了，房东不会一直当没看见。",
@@ -1385,6 +1986,15 @@ func _on_day_started(_day: int) -> void:
 		])
 
 func _on_shop_item_selected(item: Dictionary) -> void:
+	if item.has("travel_city_id"):
+		_travel_to_city(str(item.get("travel_city_id", "shanghai")))
+		return
+	if item.has("land_id"):
+		_apply_land_purchase(item)
+		return
+	if item.has("company_id"):
+		_apply_company_opening(item)
+		return
 	if item.has("contract_id"):
 		_apply_housing_choice(item)
 		return
@@ -1393,7 +2003,7 @@ func _on_shop_item_selected(item: Dictionary) -> void:
 		_store_inventory_item(item)
 		hud.focus_inventory_tab()
 		hud.set_function_bar_message("%s 已放进包里，需要时点底部“包”使用。" % item.get("name", "物品"))
-		var buy_line := "已购买 %s。效果会在你使用时生效。" % item.get("name", "物品")
+		var buy_line: String = "已购买 %s。效果会在你使用时生效。" % str(item.get("name", "物品"))
 		if int(item.get("relationship_discount", 0)) > 0:
 			buy_line = "熟人价已生效。%s" % buy_line
 		hud.set_shop_message(buy_line)
@@ -1401,12 +2011,77 @@ func _on_shop_item_selected(item: Dictionary) -> void:
 		hud.set_shop_message("钱不够。")
 
 
+func _get_high_speed_rail_tickets() -> Array[Dictionary]:
+	var city_options: Array[Dictionary] = [
+		{"id": "shanghai", "name": "上海", "station": "上海高铁站"},
+		{"id": "changchun", "name": "长春", "station": "长春西站"},
+		{"id": "xian", "name": "西安", "station": "西安北站"},
+		{"id": "chengdu", "name": "成都", "station": "成都东站"},
+		{"id": "hangzhou", "name": "杭州", "station": "杭州东站"},
+	]
+	var tickets: Array[Dictionary] = []
+	for option_index in range(city_options.size()):
+		var option: Dictionary = city_options[option_index]
+		if str(option["id"]) == current_city_id:
+			continue
+		tickets.append({
+			"id": "ticket_%s" % option["id"],
+			"name": "前往%s" % option["name"],
+			"price": 0,
+			"energy": 0,
+			"travel_city_id": option["id"],
+			"station": option["station"],
+		})
+	return tickets
+
+
+func _travel_to_city(city_id: String) -> void:
+	if city_id != "shanghai" and not regional_city_maps.has(city_id):
+		hud.set_shop_message("这条线路还没有开通。")
+		return
+	current_city_id = city_id
+	current_location = "street"
+	_set_street_map_active(city_id)
+	var active_map := _get_active_street_map()
+	var spawn_position := STREET_HIGH_SPEED_RAIL + Vector2(0, 54)
+	if active_map != null and active_map.has_method("get_station_spawn"):
+		var station_spawn: Vector2 = active_map.call("get_station_spawn")
+		spawn_position = station_spawn
+	elif city_id == "shanghai":
+		spawn_position = STREET_HIGH_SPEED_RAIL + Vector2(0, 54)
+	player.global_position = spawn_position
+	if active_map != null and active_map.has_method("get_world_rect"):
+		var active_rect: Rect2 = active_map.call("get_world_rect")
+		player.set_camera_limits(active_rect)
+	player.clear_interaction_focus()
+	hud.hide_prompt()
+	hud.set_shop_message("已抵达%s。按互动键关闭面板后就可以继续移动。" % _get_city_name(city_id))
+	hud.set_function_bar_message("高铁抵达%s，当前城市已切换。" % _get_city_name(city_id))
+	_update_hud_navigation()
+
+
+func _get_city_name(city_id: String) -> String:
+	match city_id:
+		"shanghai":
+			return "上海"
+		"changchun":
+			return "长春"
+		"xian":
+			return "西安"
+		"chengdu":
+			return "成都"
+		"hangzhou":
+			return "杭州"
+		_:
+			return "未知城市"
+
+
 func _apply_housing_choice(item: Dictionary) -> void:
 	var deposit: int = int(item.get("price", 0))
 	if not time_manager.spend(deposit):
 		hud.set_shop_message("押金和中介费不够。")
 		return
-	var contract_id := str(item.get("contract_id", "urban_village"))
+	var contract_id: String = str(item.get("contract_id", "urban_village"))
 	time_manager.apply_housing_contract(
 		contract_id,
 		str(item.get("name", "租房合同")),
@@ -1430,7 +2105,7 @@ func _apply_housing_profile(housing_id: String, display_name: String) -> void:
 	active_housing_id = housing_id
 	match housing_id:
 		"far_suburb":
-			home_street_position = Vector2(720, 468)
+			home_street_position = STREET_METRO
 			housing_sleep_energy = 88
 			housing_sleep_stress_relief = 20
 			housing_fridge_energy = 6
@@ -1438,7 +2113,7 @@ func _apply_housing_profile(housing_id: String, display_name: String) -> void:
 			housing_rent_stress_relief = 4
 			housing_morning_line = "远郊房租低一点，但醒来时通勤已经在心里排队。"
 		"talent_apartment":
-			home_street_position = Vector2(1344, 278)
+			home_street_position = STREET_TALENT_APARTMENT
 			housing_sleep_energy = 100
 			housing_sleep_stress_relief = 36
 			housing_fridge_energy = 14
@@ -1446,7 +2121,7 @@ func _apply_housing_profile(housing_id: String, display_name: String) -> void:
 			housing_rent_stress_relief = 12
 			housing_morning_line = "人才公寓的早晨更安静，但高房租会提醒你继续往前跑。"
 		_:
-			home_street_position = Vector2(152, 190)
+			home_street_position = STREET_HOME
 			housing_sleep_energy = 100
 			housing_sleep_stress_relief = 28
 			housing_fridge_energy = 8
@@ -1520,7 +2195,7 @@ func _on_inventory_item_used(index: int) -> void:
 	else:
 		inventory_items.remove_at(index)
 	_on_status_changed(time_manager.get_status())
-	var stress_text := "压力 -%d" % stress_relief
+	var stress_text: String = "压力 -%d" % stress_relief
 	if stress_relief < 0:
 		stress_text = "压力 +%d" % abs(stress_relief)
 	else:
@@ -1615,6 +2290,10 @@ func _get_shop_items(source_id: String) -> Array[Dictionary]:
 			{"id": "contract_urban_village", "contract_id": "urban_village", "name": "城中村合租", "price": 0, "rent_amount": 1200, "commute_fare": 6, "commute_energy_cost": 4, "commute_stress_gain": 2, "energy": 0, "stress_relief": 0},
 			{"id": "contract_far_suburb", "contract_id": "far_suburb", "name": "远郊单间", "price": 260, "rent_amount": 850, "commute_fare": 8, "commute_energy_cost": 8, "commute_stress_gain": 6, "energy": 0, "stress_relief": 0},
 			{"id": "contract_talent_apartment", "contract_id": "talent_apartment", "name": "人才公寓试住", "price": 520, "rent_amount": 1650, "commute_fare": 4, "commute_energy_cost": 2, "commute_stress_gain": 1, "energy": 0, "stress_relief": 6},
+			{"id": "land_shared_office_desk", "land_id": "shared_office_desk", "name": "共享办公工位", "price": 900, "required_reputation": 5},
+			{"id": "company_agency_studio", "company_id": "agency_studio", "name": "代运营小公司", "price": 1600, "required_reputation": 12, "required_land": "shared_office_desk"},
+			{"id": "land_night_market_booth", "land_id": "night_market_booth", "name": "夜市摊位", "price": 1800, "required_reputation": 10},
+			{"id": "company_errand_studio", "company_id": "errand_studio", "name": "跑腿小队", "price": 2600, "required_reputation": 18, "required_land": "night_market_booth"},
 		]
 	return [
 		{"id": "canteen_set", "name": "小饭馆套餐", "price": 26, "energy": 34, "stress_relief": 4},
@@ -1636,7 +2315,7 @@ func _apply_relationship_shop_discount(items: Array[Dictionary], npc_id: String)
 	return discounted
 
 func _get_commute_line() -> String:
-	var pressure := " 车费 %d，体力 -%d，压力 +%d。" % [time_manager.commute_fare, time_manager.commute_energy_cost, time_manager.commute_stress_gain]
+	var pressure: String = " 车费 %d，体力 -%d，压力 +%d。" % [time_manager.commute_fare, time_manager.commute_energy_cost, time_manager.commute_stress_gain]
 	if time_manager.is_rainy():
 		return "你带着潮湿的袖口挤进地铁，四十分钟后到达公司附近。%s" % pressure
 	return "你刷卡进闸，坐地铁穿过城市去上班。%s" % pressure

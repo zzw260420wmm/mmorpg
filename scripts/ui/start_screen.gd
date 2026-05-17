@@ -55,7 +55,7 @@ func _build_ui() -> void:
 	box.add_theme_constant_override("separation", 10)
 	margin.add_child(box)
 
-	var eyebrow := _make_label("上海都市生活 DEMO", 12, Color("#f1d58a"))
+	var eyebrow := _make_label("上海都市生活演示版", 12, Color("#f1d58a"))
 	box.add_child(eyebrow)
 
 	var title := _make_label("新路故城", 26, Color("#fff1cf"))
@@ -65,7 +65,7 @@ func _build_ui() -> void:
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(subtitle)
 
-	var bullet_1 := _make_label("WASD 移动  E 互动  Esc 关闭对话或面板", 12, Color("#cdbca7"))
+	var bullet_1 := _make_label("方向键移动  互动键操作  取消键关闭对话或面板", 12, Color("#cdbca7"))
 	box.add_child(bullet_1)
 	var bullet_2 := _make_label("左上小地图显示位置、附近的人和当前目标。", 12, Color("#cdbca7"))
 	box.add_child(bullet_2)
@@ -79,7 +79,7 @@ func _build_ui() -> void:
 	start_button.pressed.connect(_start_game)
 	box.add_child(start_button)
 
-	var hint := _make_label("按 Enter、Space 或 E 开始", 11, Color("#9e9386"))
+	var hint := _make_label("按确认键、空格键或互动键开始", 11, Color("#9e9386"))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(hint)
 

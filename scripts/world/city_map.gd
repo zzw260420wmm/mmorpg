@@ -3,7 +3,28 @@ class_name CityMap
 
 const TILE_SIZE := 16
 const BUILDING_GRID := TILE_SIZE * 4
-const MAP_SIZE := Vector2i(132, 76)
+const MAP_SCALE := 3
+const MAP_SIZE := Vector2i(132 * MAP_SCALE, 76 * MAP_SCALE)
+
+const STREET_HOME := Vector2(348, 382)
+const STREET_STORE := Vector2(1238, 382)
+const STREET_RESTAURANT := Vector2(858, 1018)
+const STREET_METRO := Vector2(2138, 1218)
+const STREET_OFFICE := Vector2(3540, 642)
+const STREET_OFFICE_COFFEE := Vector2(3936, 1408)
+const STREET_DELIVERY_STATION := Vector2(2976, 1408)
+const STREET_DELIVERY_PICKUP := Vector2(858, 1018)
+const STREET_DELIVERY_DROPOFF := Vector2(4700, 642)
+const STREET_MEDIA := Vector2(2784, 386)
+const STREET_MARKET := Vector2(670, 2494)
+const STREET_CLINIC := Vector2(1438, 2366)
+const STREET_TALENT_APARTMENT := Vector2(4700, 642)
+const STREET_RENTAL_AGENCY := Vector2(4512, 1664)
+const STREET_PEOPLE_SQUARE := Vector2(2304, 960)
+const STREET_BUND := Vector2(5150, 980)
+const STREET_LUJIAZUI := Vector2(5570, 880)
+const STREET_HIGH_SPEED_RAIL := Vector2(5880, 1740)
+const STREET_REPUBLIC_SHANGHAI := Vector2(5340, 1300)
 
 const WorldInteractableScript := preload("res://scripts/world/world_interactable.gd")
 const ArtAssetsScript := preload("res://scripts/core/art_assets.gd")
@@ -24,7 +45,7 @@ func _ready() -> void:
 
 
 func get_player_spawn() -> Vector2:
-	return Vector2(150, 228)
+	return STREET_HOME + Vector2(0, 28)
 
 
 func get_world_rect() -> Rect2:
@@ -42,6 +63,10 @@ func set_weather(weather_key: String) -> void:
 
 
 func _draw() -> void:
+	if _has_reference_road_tile_map():
+		_draw_reusable_street_props()
+		_draw_metro_glow()
+		return
 	_draw_shanghai_geography()
 	_draw_puddles_and_lights()
 	for data in building_rects:
@@ -50,38 +75,52 @@ func _draw() -> void:
 	_draw_metro_glow()
 
 
+func _has_reference_road_tile_map() -> bool:
+	var road_tile_map: TileMap = get_node_or_null("RoadElementTileMap") as TileMap
+	if road_tile_map == null:
+		road_tile_map = get_node_or_null("RoadScreenshotTileMap") as TileMap
+	return road_tile_map != null and road_tile_map.visible
+
+
 func _create_tile_map() -> void:
-	tile_map = TileMap.new()
-	tile_map.name = "PixelTileMap"
-	tile_map.z_index = -20
-	add_child(tile_map)
+	tile_map = get_node_or_null("PixelTileMap") as TileMap
+	if tile_map == null:
+		tile_map = TileMap.new()
+		tile_map.name = "PixelTileMap"
+		tile_map.z_index = -20
+		add_child(tile_map)
 
-	var source := TileSetAtlasSource.new()
-	source.texture = ArtAssetsScript.TILE_ATLAS_TEXTURE
-	source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
-	var tile_names := [
-		"old_concrete",
-		"wet_asphalt",
-		"aged_floor",
-		"rain_puddle",
-		"alley_patch",
-		"office_tile",
-		"metro_tile",
-		"delivery_wall",
-		"media_floor",
-	]
-	for tile_name in tile_names:
-		source.create_tile(ArtAssetsScript.tile_atlas_coords(tile_name))
+	if _has_reference_road_tile_map():
+		return
 
-	var tile_set := TileSet.new()
-	tile_set.tile_size = Vector2i(TILE_SIZE, TILE_SIZE)
-	tile_set.add_source(source, 0)
-	tile_map.tile_set = tile_set
+	if tile_map.tile_set == null:
+		var source := TileSetAtlasSource.new()
+		source.texture = ArtAssetsScript.TILE_ATLAS_TEXTURE
+		source.texture_region_size = Vector2i(TILE_SIZE, TILE_SIZE)
+		var tile_names := [
+			"old_concrete",
+			"wet_asphalt",
+			"aged_floor",
+			"rain_puddle",
+			"alley_patch",
+			"office_tile",
+			"metro_tile",
+			"delivery_wall",
+			"media_floor",
+		]
+		for tile_name in tile_names:
+			source.create_tile(ArtAssetsScript.tile_atlas_coords(tile_name))
 
-	for y in range(MAP_SIZE.y):
-		for x in range(MAP_SIZE.x):
-			var atlas := _tile_atlas_for_cell(x, y)
-			tile_map.set_cell(0, Vector2i(x, y), 0, atlas)
+		var tile_set := TileSet.new()
+		tile_set.tile_size = Vector2i(TILE_SIZE, TILE_SIZE)
+		tile_set.add_source(source, 0)
+		tile_map.tile_set = tile_set
+
+	if tile_map.get_used_cells(0).is_empty():
+		for y in range(MAP_SIZE.y):
+			for x in range(MAP_SIZE.x):
+				var atlas := _tile_atlas_for_cell(x, y)
+				tile_map.set_cell(0, Vector2i(x, y), 0, atlas)
 
 
 func _tile_atlas_for_cell(x: int, y: int) -> Vector2i:
@@ -123,18 +162,25 @@ func _tile_atlas_for_cell(x: int, y: int) -> Vector2i:
 
 
 func _create_buildings() -> void:
-	_add_building("rental", Rect2(64, 64, 128, 128), Color("#8e6d58"), Color("#6d5046"), Color("#efc36f"))
-	_add_building("store", Rect2(576, 64, 128, 128), Color("#6d8d83"), Color("#3d635f"), Color("#f5d37b"))
-	_add_building("restaurant", Rect2(320, 320, 128, 64), Color("#a45d45"), Color("#793d36"), Color("#ffe0a3"))
-	_add_building("metro", Rect2(640, 384, 128, 64), Color("#4d5d70"), Color("#2f3d4f"), Color("#a9d7ff"))
-	_add_building("office", Rect2(1024, 128, 128, 128), Color("#697985"), Color("#3f4d5d"), Color("#c7e7ff"))
-	_add_building("office_shop", Rect2(1152, 448, 128, 64), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
-	_add_building("delivery_station", Rect2(832, 448, 128, 64), Color("#6f7653"), Color("#4d5738"), Color("#f3cf6b"))
-	_add_building("media_company", Rect2(832, 64, 128, 128), Color("#7b647f"), Color("#58445f"), Color("#ffc4d6"))
-	_add_building("wet_market", Rect2(192, 704, 128, 64), Color("#6f7653"), Color("#4d5738"), Color("#f0c77b"))
-	_add_building("community_clinic", Rect2(448, 640, 128, 64), Color("#6d8d83"), Color("#3d635f"), Color("#d8fff0"))
-	_add_building("talent_apartment", Rect2(1280, 128, 128, 128), Color("#7d8588"), Color("#56636c"), Color("#ffe2a1"))
-	_add_building("rental_agency", Rect2(1216, 512, 128, 64), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
+	_add_building("rental", _grid_rect(4, 4, 2, 2), Color("#8e6d58"), Color("#6d5046"), Color("#efc36f"))
+	_add_building("store", _grid_rect(18, 4, 2, 2), Color("#6d8d83"), Color("#3d635f"), Color("#f5d37b"))
+	_add_building("restaurant", _grid_rect(12, 15, 2, 1), Color("#a45d45"), Color("#793d36"), Color("#ffe0a3"))
+	_add_building("metro", _grid_rect(32, 18, 2, 1), Color("#4d5d70"), Color("#2f3d4f"), Color("#a9d7ff"))
+	_add_building("office", _grid_rect(54, 8, 2, 2), Color("#697985"), Color("#3f4d5d"), Color("#c7e7ff"))
+	_add_building("office_shop", _grid_rect(60, 21, 2, 1), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
+	_add_building("delivery_station", _grid_rect(45, 21, 2, 1), Color("#6f7653"), Color("#4d5738"), Color("#f3cf6b"))
+	_add_building("media_company", _grid_rect(42, 4, 2, 2), Color("#7b647f"), Color("#58445f"), Color("#ffc4d6"))
+	_add_building("wet_market", _grid_rect(9, 38, 2, 1), Color("#6f7653"), Color("#4d5738"), Color("#f0c77b"))
+	_add_building("community_clinic", _grid_rect(21, 36, 2, 1), Color("#6d8d83"), Color("#3d635f"), Color("#d8fff0"))
+	_add_building("talent_apartment", _grid_rect(72, 8, 2, 2), Color("#7d8588"), Color("#56636c"), Color("#ffe2a1"))
+	_add_building("rental_agency", _grid_rect(69, 25, 2, 1), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
+
+
+func _grid_rect(tile_x: int, tile_y: int, tile_width: int, tile_height: int) -> Rect2:
+	return Rect2(
+		Vector2(tile_x * BUILDING_GRID, tile_y * BUILDING_GRID),
+		Vector2(tile_width * BUILDING_GRID, tile_height * BUILDING_GRID)
+	)
 
 
 func _add_building(id: String, rect: Rect2, body: Color, roof: Color, light: Color) -> void:
@@ -166,14 +212,15 @@ func _create_boundaries() -> void:
 	_add_collision_rect("west_wall", Vector2(-16, 0), Vector2(16, world_size.y))
 	_add_collision_rect("east_wall", Vector2(world_size.x, 0), Vector2(16, world_size.y))
 
-	_add_collision_rect("laundry_posts", Vector2(92, 208), Vector2(96, 10))
-	_add_collision_rect("food_stall_tables", Vector2(332, 455), Vector2(72, 16))
-	_add_collision_rect("skybridge_post_left", Vector2(944, 314), Vector2(12, 32))
-	_add_collision_rect("skybridge_post_right", Vector2(1162, 314), Vector2(12, 32))
-	_add_collision_rect("delivery_scooters", Vector2(802, 526), Vector2(112, 18))
-	_add_collision_rect("huangpu_river_north", Vector2(914, -8), Vector2(96, 292))
-	_add_collision_rect("huangpu_river_middle", Vector2(922, 362), Vector2(86, 128))
-	_add_collision_rect("huangpu_river_south", Vector2(930, 568), Vector2(92, MAP_SIZE.y * TILE_SIZE - 568))
+	_add_collision_rect("laundry_posts", Vector2(300, 408), Vector2(96, 10))
+	_add_collision_rect("food_stall_tables", Vector2(802, 1050), Vector2(72, 16))
+	_add_collision_rect("skybridge_post_left", Vector2(3380, 834), Vector2(12, 32))
+	_add_collision_rect("skybridge_post_right", Vector2(3602, 834), Vector2(12, 32))
+	_add_collision_rect("delivery_scooters", Vector2(2884, 1436), Vector2(112, 18))
+	_add_collision_rect("huangpu_river_north", Vector2(5248, -8), Vector2(256, 904))
+	_add_collision_rect("huangpu_river_middle_a", Vector2(5248, 1024), Vector2(256, 640))
+	_add_collision_rect("huangpu_river_middle_b", Vector2(5248, 1792), Vector2(256, 1024))
+	_add_collision_rect("huangpu_river_south", Vector2(5248, 2944), Vector2(256, MAP_SIZE.y * TILE_SIZE - 2944))
 
 
 func _add_collision_rect(name: String, top_left: Vector2, size: Vector2) -> void:
@@ -197,7 +244,7 @@ func _create_interactables() -> void:
 		"name": "出租屋",
 		"kind": "enter_apartment",
 		"prompt": "按 E 回家",
-		"position": Vector2(152, 190),
+		"position": STREET_HOME,
 		"size": Vector2(44, 26),
 		"fill_color": Color(0.86, 0.68, 0.38, 0.26),
 	})
@@ -206,7 +253,7 @@ func _create_interactables() -> void:
 		"name": "便利店",
 		"kind": "shop",
 		"prompt": "按 E 购物",
-		"position": Vector2(656, 176),
+		"position": STREET_STORE,
 		"size": Vector2(58, 28),
 		"fill_color": Color(0.93, 0.78, 0.36, 0.24),
 	})
@@ -215,7 +262,7 @@ func _create_interactables() -> void:
 		"name": "地铁口",
 		"kind": "enter_metro",
 		"prompt": "按 E 进地铁站",
-		"position": Vector2(720, 448),
+		"position": STREET_METRO,
 		"size": Vector2(60, 28),
 		"lines": {
 			"default": ["地铁口吐出潮湿的风和白色灯光。"],
@@ -231,7 +278,7 @@ func _create_interactables() -> void:
 		"name": "人民广场方向",
 		"kind": "dialogue",
 		"prompt": "按 E 看人民广场方向",
-		"position": Vector2(560, 228),
+		"position": STREET_PEOPLE_SQUARE,
 		"size": Vector2(72, 28),
 		"lines": {
 			"default": ["这个方向把地铁线、商场、人流和招聘广告压成一个城市结。"],
@@ -246,7 +293,7 @@ func _create_interactables() -> void:
 		"name": "外滩江边",
 		"kind": "dialogue",
 		"prompt": "按 E 看外滩方向",
-		"position": Vector2(900, 252),
+		"position": STREET_BUND,
 		"size": Vector2(60, 30),
 		"lines": {
 			"default": ["江对岸，游客照片和打工人的通勤吹着同一阵风。"],
@@ -261,7 +308,7 @@ func _create_interactables() -> void:
 		"name": "徐家汇方向",
 		"kind": "dialogue",
 		"prompt": "按 E 看徐家汇方向",
-		"position": Vector2(304, 590),
+		"position": Vector2(960, 2880),
 		"size": Vector2(72, 28),
 		"lines": {
 			"default": ["西南方向把商场、办公室、老小区和换乘站折在一起。"],
@@ -272,25 +319,52 @@ func _create_interactables() -> void:
 	})
 	_add_interactable({
 		"id": "lujiazui_node",
-		"name": "陆家嘴方向",
+		"name": "东方明珠",
 		"kind": "dialogue",
-		"prompt": "按 E 看陆家嘴方向",
-		"position": Vector2(1088, 366),
-		"size": Vector2(76, 28),
+		"prompt": "按 E 看东方明珠",
+		"position": STREET_LUJIAZUI,
+		"size": Vector2(86, 30),
 		"lines": {
-			"default": ["过了江，写字楼像另一套生活规则一样竖起来。"],
-			"morning": ["早高峰人群从地铁站涌向玻璃楼。"],
-			"late_night": ["有些办公室的灯还亮着，把今天拖进明天。"],
+			"default": ["东方明珠立在江对岸，像城市给每个漂着的人留下的坐标。"],
+			"morning": ["早高峰的人流从塔下掠过，没人真的停下来抬头。"],
+			"evening": ["塔身灯光亮起来，江风把今天的疲惫吹得更清楚。"],
+			"late_night": ["东方明珠还亮着，有些办公室也还亮着。"],
 		},
 		"fill_color": Color(0.55, 0.76, 0.95, 0.16),
 		"border_color": Color("#c7e7ff"),
+	})
+	_add_interactable({
+		"id": "shanghai_hsr",
+		"name": "上海高铁站",
+		"kind": "high_speed_rail",
+		"prompt": "按 E 乘高铁",
+		"position": STREET_HIGH_SPEED_RAIL,
+		"size": Vector2(112, 36),
+		"lines": {
+			"default": ["站厅里滚动着去往各地的车次。"],
+		},
+		"fill_color": Color(0.48, 0.68, 0.88, 0.22),
+		"border_color": Color("#a9d7ff"),
+	})
+	_add_interactable({
+		"id": "republic_shanghai_portal",
+		"name": "民国上海旧影",
+		"kind": "enter_republic_shanghai",
+		"prompt": "按 E 前往民国上海",
+		"position": STREET_REPUBLIC_SHANGHAI,
+		"size": Vector2(118, 38),
+		"lines": {
+			"default": ["旧报纸和黄浦江风把这条路折回了另一个年代。"],
+		},
+		"fill_color": Color(0.48, 0.68, 0.88, 0.20),
+		"border_color": Color("#a9d7ff"),
 	})
 	_add_interactable({
 		"id": "wet_market",
 		"name": "菜场",
 		"kind": "enter_wet_market",
 		"prompt": "按 E 进菜场",
-		"position": Vector2(272, 768),
+		"position": STREET_MARKET,
 		"size": Vector2(78, 30),
 		"lines": {
 			"default": ["菜场比便利店便宜，但它要求你自己把希望煮熟。"],
@@ -305,7 +379,7 @@ func _create_interactables() -> void:
 		"name": "社区诊所",
 		"kind": "enter_clinic",
 		"prompt": "按 E 进诊所",
-		"position": Vector2(528, 704),
+		"position": STREET_CLINIC,
 		"size": Vector2(78, 30),
 		"lines": {
 			"default": ["流感海报和体检通知挤在诊所门口。"],
@@ -320,7 +394,7 @@ func _create_interactables() -> void:
 		"name": "人才公寓",
 		"kind": "talent_apartment",
 		"prompt": "按 E 查看人才公寓",
-		"position": Vector2(1344, 256),
+		"position": STREET_TALENT_APARTMENT,
 		"size": Vector2(88, 30),
 		"lines": {
 			"default": ["门口贴满申请条件：学历、社保、单位、排队号。"],
@@ -334,7 +408,7 @@ func _create_interactables() -> void:
 		"name": "房产中介",
 		"kind": "rental_agency",
 		"prompt": "按 E 看租房信息",
-		"position": Vector2(1280, 576),
+		"position": STREET_RENTAL_AGENCY,
 		"size": Vector2(78, 30),
 		"lines": {
 			"default": ["小纸条承诺房间、合租、押金和离地铁的距离。"],
@@ -348,7 +422,7 @@ func _create_interactables() -> void:
 		"name": "小饭馆",
 		"kind": "shop",
 		"prompt": "按 E 买饭",
-		"position": Vector2(400, 384),
+		"position": STREET_RESTAURANT,
 		"size": Vector2(52, 26),
 		"lines": {
 			"default": ["热气从手写菜单旁边的门缝里溜出来。"],
@@ -363,7 +437,7 @@ func _create_interactables() -> void:
 		"name": "写字楼入口",
 		"kind": "office",
 		"prompt": "按 E 进公司",
-		"position": Vector2(1088, 256),
+		"position": STREET_OFFICE,
 		"size": Vector2(72, 30),
 		"lines": {
 			"default": ["玻璃墙把天空切成整齐的几块。"],
@@ -379,7 +453,7 @@ func _create_interactables() -> void:
 		"name": "写字楼咖啡",
 		"kind": "shop",
 		"prompt": "按 E 买咖啡",
-		"position": Vector2(1216, 512),
+		"position": STREET_OFFICE_COFFEE,
 		"size": Vector2(58, 26),
 		"fill_color": Color(0.86, 0.64, 0.38, 0.20),
 		"border_color": Color("#f0c77b"),
@@ -389,7 +463,7 @@ func _create_interactables() -> void:
 		"name": "配送站",
 		"kind": "delivery_station",
 		"prompt": "按 E 接外卖单",
-		"position": Vector2(896, 512),
+		"position": STREET_DELIVERY_STATION,
 		"size": Vector2(72, 28),
 		"lines": {
 			"default": ["电动车排成一排，手机提示音此起彼伏。"],
@@ -405,7 +479,7 @@ func _create_interactables() -> void:
 		"name": "取餐点",
 		"kind": "delivery_pickup",
 		"prompt": "按 E 取餐",
-		"position": Vector2(458, 440),
+		"position": STREET_DELIVERY_PICKUP,
 		"size": Vector2(46, 26),
 		"fill_color": Color(1.0, 0.64, 0.35, 0.20),
 		"border_color": Color("#ffd28a"),
@@ -415,7 +489,7 @@ func _create_interactables() -> void:
 		"name": "送达点",
 		"kind": "delivery_dropoff",
 		"prompt": "按 E 送达",
-		"position": Vector2(228, 206),
+		"position": STREET_DELIVERY_DROPOFF,
 		"size": Vector2(46, 26),
 		"fill_color": Color(0.86, 0.68, 0.38, 0.22),
 		"border_color": Color("#efc36f"),
@@ -425,7 +499,7 @@ func _create_interactables() -> void:
 		"name": "传媒公司",
 		"kind": "media_company",
 		"prompt": "按 E 进传媒公司",
-		"position": Vector2(896, 192),
+		"position": STREET_MEDIA,
 		"size": Vector2(70, 28),
 		"lines": {
 			"default": ["短视频机构的粉色招牌在走廊上方发光。"],
@@ -525,18 +599,18 @@ func _draw_real_map_landmarks() -> void:
 
 
 func _draw_reusable_street_props() -> void:
-	ArtAssetsScript.draw_prop(self, "laundry_rack", Vector2(104, 188), 1.0)
-	ArtAssetsScript.draw_prop(self, "ac_unit", Vector2(80, 92), 0.9)
-	ArtAssetsScript.draw_prop(self, "ac_unit", Vector2(186, 92), 0.9)
-	ArtAssetsScript.draw_prop(self, "vending_machine", Vector2(760, 208), 1.0)
-	ArtAssetsScript.draw_prop(self, "utility_pole", Vector2(504, 190), 1.0)
-	ArtAssetsScript.draw_prop(self, "food_sign", Vector2(402, 408), 1.0)
-	ArtAssetsScript.draw_prop(self, "metro_sign", Vector2(694, 394), 1.0)
-	ArtAssetsScript.draw_prop(self, "rider_bag", Vector2(822, 506), 1.0)
+	ArtAssetsScript.draw_prop(self, "laundry_rack", Vector2(312, 388), 1.0)
+	ArtAssetsScript.draw_prop(self, "ac_unit", Vector2(270, 284), 0.9)
+	ArtAssetsScript.draw_prop(self, "ac_unit", Vector2(376, 284), 0.9)
+	ArtAssetsScript.draw_prop(self, "vending_machine", Vector2(1264, 404), 1.0)
+	ArtAssetsScript.draw_prop(self, "utility_pole", Vector2(1840, 930), 1.0)
+	ArtAssetsScript.draw_prop(self, "food_sign", Vector2(842, 1036), 1.0)
+	ArtAssetsScript.draw_prop(self, "metro_sign", Vector2(2112, 1180), 1.0)
+	ArtAssetsScript.draw_prop(self, "rider_bag", Vector2(2904, 1420), 1.0)
 	for i in range(4):
-		ArtAssetsScript.draw_prop(self, "scooter", Vector2(796 + i * 34, 520), 1.0)
-	ArtAssetsScript.draw_prop(self, "product_boxes", Vector2(860, 192), 1.0)
-	ArtAssetsScript.draw_prop(self, "ring_light", Vector2(936, 188), 0.9, Color(1.0, 1.0, 1.0, 0.88))
+		ArtAssetsScript.draw_prop(self, "scooter", Vector2(2888 + i * 34, 1430), 1.0)
+	ArtAssetsScript.draw_prop(self, "product_boxes", Vector2(2720, 376), 1.0)
+	ArtAssetsScript.draw_prop(self, "ring_light", Vector2(2796, 374), 0.9, Color(1.0, 1.0, 1.0, 0.88))
 
 
 func _draw_building(data: Dictionary) -> void:
@@ -562,7 +636,7 @@ func _draw_building_grid(rect: Rect2) -> void:
 func _draw_grid_building_details(id: String, rect: Rect2, light: Color) -> void:
 	var cols := int(rect.size.x / TILE_SIZE)
 	var rows := int(rect.size.y / TILE_SIZE)
-	var door_col := max(1, cols / 2 - 1)
+	var door_col: int = max(1, cols / 2 - 1)
 	if id in ["restaurant", "office_shop", "delivery_station", "wet_market", "community_clinic", "rental_agency", "metro"]:
 		door_col = max(1, cols - 3)
 	for row in range(1, max(2, rows - 1)):
@@ -635,8 +709,8 @@ func _draw_puddles_and_lights() -> void:
 
 	if current_weather == "rain":
 		for i in range(32):
-			var x := float((i * 37) % (MAP_SIZE.x * TILE_SIZE))
-			var y := float((i * 53) % (MAP_SIZE.y * TILE_SIZE))
+			var x: float = float((i * 37) % (MAP_SIZE.x * TILE_SIZE))
+			var y: float = float((i * 53) % (MAP_SIZE.y * TILE_SIZE))
 			draw_line(Vector2(x, y), Vector2(x - 5, y + 10), Color(0.75, 0.88, 0.95, 0.28), 1.0)
 
 	if current_segment in ["evening", "late_night"]:
@@ -654,7 +728,7 @@ func _draw_puddles_and_lights() -> void:
 func _draw_metro_glow() -> void:
 	if current_segment == "morning":
 		return
-	draw_line(Vector2(650, 394), Vector2(785, 394), Color(0.45, 0.72, 1.0, 0.35), 2.0)
+	draw_line(Vector2(2068, 1182), Vector2(2198, 1182), Color(0.45, 0.72, 1.0, 0.35), 2.0)
 
 
 func _draw_ellipse(rect: Rect2, color: Color) -> void:

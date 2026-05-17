@@ -112,6 +112,33 @@ func interact(game: Node) -> void:
 		"shop":
 			if game.has_method("open_shop"):
 				game.call("open_shop", self)
+		"high_speed_rail":
+			if game.has_method("open_high_speed_rail"):
+				game.call("open_high_speed_rail", self)
+		"enter_qikai_district":
+			if game.has_method("enter_qikai_district_from"):
+				game.call("enter_qikai_district_from", self)
+		"exit_qikai_district":
+			if game.has_method("exit_qikai_district"):
+				game.call("exit_qikai_district")
+		"enter_faw_factory":
+			if game.has_method("enter_faw_factory_from"):
+				game.call("enter_faw_factory_from", self)
+		"exit_faw_factory":
+			if game.has_method("exit_faw_factory"):
+				game.call("exit_faw_factory")
+		"enter_tang_changan":
+			if game.has_method("enter_tang_changan_from"):
+				game.call("enter_tang_changan_from", self)
+		"exit_tang_changan":
+			if game.has_method("exit_tang_changan"):
+				game.call("exit_tang_changan")
+		"enter_republic_shanghai":
+			if game.has_method("enter_republic_shanghai_from"):
+				game.call("enter_republic_shanghai_from", self)
+		"exit_republic_shanghai":
+			if game.has_method("exit_republic_shanghai"):
+				game.call("exit_republic_shanghai")
 		"fridge":
 			if game.has_method("request_fridge_food"):
 				game.call("request_fridge_food")

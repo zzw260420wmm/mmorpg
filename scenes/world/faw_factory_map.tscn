@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/faw_factory_map.gd" id="1_map"]
+[ext_resource type="TileSet" path="res://assets/tiles/polished_city_tileset_64.tres" id="2_tileset"]
+
+[node name="FawFactoryMap" type="Node2D"]
+script = ExtResource("1_map")
+
+[node name="FactoryTileMap" type="TileMap" parent="."]
+texture_filter = 1
+tile_set = ExtResource("2_tileset")

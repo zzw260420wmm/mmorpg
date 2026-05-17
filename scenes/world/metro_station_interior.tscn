@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://bfx43r2wyc86g"]
+
+[ext_resource type="Script" path="res://scripts/world/metro_station_interior.gd" id="1_metro"]
+[ext_resource type="TileSet" path="res://assets/tiles/urban_life_tileset.tres" id="2_tileset"]
+
+[node name="MetroStationInterior" type="Node2D"]
+script = ExtResource("1_metro")
+
+[node name="MetroStationTileMap" type="TileMap" parent="."]
+z_index = -20
+position = Vector2(352, 96)
+texture_filter = 1
+tile_set = ExtResource("2_tileset")
+format = 2

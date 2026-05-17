@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/historical_city_map.gd" id="1_map"]
+[ext_resource type="TileSet" path="res://assets/tiles/polished_city_tileset_64.tres" id="2_tileset"]
+
+[node name="TangChanganMap" type="Node2D"]
+script = ExtResource("1_map")
+map_id = "tang_changan"
+display_name = "唐长安"
+return_kind = "exit_tang_changan"
+
+[node name="HistoricalTileMap" type="TileMap" parent="."]
+texture_filter = 1
+tile_set = ExtResource("2_tileset")

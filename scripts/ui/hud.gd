@@ -84,35 +84,34 @@ func _ready() -> void:
 
 
 func update_status(status: Dictionary) -> void:
-	var date_text: String = str(status.get("date", "6/1"))
+	var date_text: String = str(status.get("date", "06/01"))
 	var clock_text: String = str(status.get("clock", "06:00"))
 	var speed_text: String = str(status.get("time_speed", 96))
 	var segment_text: String = str(status.get("segment", "上午"))
-	var weather_text: String = str(status.get("weather", "晴天"))
+	var weather_text: String = str(status.get("weather", "晴朗"))
 	var money: int = int(status.get("money", 0))
 	var energy: int = int(status.get("energy", 0))
 	var max_energy: int = int(status.get("max_energy", 100))
 	var stress: int = int(status.get("stress", 0))
 	var max_stress: int = int(status.get("max_stress", 100))
-	var rent_text: String = str(status.get("rent_label", "7天后到期"))
+	var rent_text: String = str(status.get("rent_label", "房租未到期"))
 	var delivery_state: String = str(status.get("delivery_state", "none"))
 
 	date_label.text = date_text
-	clock_label.text = "%s  ·  %sx" % [clock_text, speed_text]
-	segment_label.text = "时段 %s" % segment_text
+	clock_label.text = "%s  流速 %s倍" % [clock_text, speed_text]
+	segment_label.text = "时间 %s" % segment_text
 	weather_label.text = "天气 %s" % weather_text
 	money_label.text = "  现金 %d" % money
 	energy_label.text = "  体力 %d/%d" % [energy, max_energy]
 	stress_label.text = "  压力 %d/%d" % [stress, max_stress]
 	if delivery_state == "accepted":
-		work_label.text = "  外卖 去取餐"
+		work_label.text = "  外卖取餐"
 	elif delivery_state == "picked":
-		work_label.text = "  外卖 配送中"
+		work_label.text = "  外卖送达"
 	else:
 		work_label.text = "  工作 %s" % str(status.get("work_performance", "未工作"))
 	rent_label.text = "  房租 %s" % rent_text
 	goals_label.text = _build_goals_text(status)
-
 
 func update_function_bar(status: Dictionary, inventory: Array[Dictionary]) -> void:
 	var status_copy: Dictionary = status.duplicate()
@@ -180,19 +179,24 @@ func show_shop(title: String, items: Array[Dictionary]) -> void:
 		var item_copy: Dictionary = item.duplicate()
 		current_shop_items.append(item_copy)
 	shop_title.text = title
-	shop_message_label.text = "按 1-9 购买。按 E 或 Esc 关闭。"
+	shop_message_label.text = "按 1-9 购买。按互动键或取消键关闭。"
 	var lines := PackedStringArray()
 	for i in range(current_shop_items.size()):
 		var item: Dictionary = current_shop_items[i]
-		if item.has("contract_id"):
-			lines.append("%d  %s  手续费 %d  房租 %d  通勤 %d" % [i + 1, str(item.get("name", "合同")), int(item.get("price", 0)), int(item.get("rent_amount", 0)), int(item.get("commute_fare", 0))])
+		if item.has("travel_city_id"):
+			lines.append("%d  %s  立即出发" % [i + 1, str(item.get("name", "目的地"))])
+		elif item.has("contract_id"):
+			lines.append("%d  %s  费用 %d  房租 %d  通勤 %d" % [i + 1, str(item.get("name", "合同")), int(item.get("price", 0)), int(item.get("rent_amount", 0)), int(item.get("commute_fare", 0))])
+		elif item.has("land_id"):
+			lines.append("%d  %s  %d 元  当前城市声望 %d" % [i + 1, str(item.get("name", "地皮")), int(item.get("price", 0)), int(item.get("required_reputation", 0))])
+		elif item.has("company_id"):
+			lines.append("%d  %s  %d 元  当前城市声望 %d" % [i + 1, str(item.get("name", "公司")), int(item.get("price", 0)), int(item.get("required_reputation", 0))])
 		else:
-			lines.append("%d  %s  %d元  体力 +%d" % [i + 1, str(item.get("name", "物品")), int(item.get("price", 0)), int(item.get("energy", 0))])
+			lines.append("%d  %s  %d 元  体力 +%d" % [i + 1, str(item.get("name", "物品")), int(item.get("price", 0)), int(item.get("energy", 0))])
 	shop_items_label.text = "\n".join(lines)
 	shop_panel.visible = true
 	dialog_panel.visible = false
 	hide_prompt()
-
 
 func set_shop_message(message: String) -> void:
 	shop_message_label.text = message
@@ -249,15 +253,17 @@ func _advance_dialogue() -> void:
 
 func _refresh_dialogue_line() -> void:
 	dialog_label.text = str(dialogue_lines[dialogue_index])
-	dialog_hint.text = "按 E 继续" if dialogue_index < dialogue_lines.size() - 1 else "按 Esc 关闭"
-
+	_update_dialog_hint()
 
 func _update_dialog_hint() -> void:
-	if dialogue_index < dialogue_lines.size() - 1:
-		dialog_hint.text = "按 E 继续，Esc 关闭"
+	if dialog_hint == null:
+		return
+	if dialogue_lines.is_empty():
+		dialog_hint.text = "按取消键关闭"
+	elif dialogue_index < dialogue_lines.size() - 1:
+		dialog_hint.text = "按互动键继续，取消键关闭"
 	else:
-		dialog_hint.text = "按 Esc 关闭"
-
+		dialog_hint.text = "按取消键关闭"
 
 func _close_dialogue() -> void:
 	dialog_panel.visible = false
@@ -309,15 +315,15 @@ func _build_status_panel(root: Control) -> void:
 	status_content.add_theme_constant_override("separation", 3)
 	status_margin.add_child(status_content)
 
-	date_label = _make_label("6/1", 15, Color("#3b2d23"))
-	clock_label = _make_label("06:00  ·  96x", 15, Color("#68442f"))
-	segment_label = _make_label("时段 上午", 12, Color("#68442f"))
-	weather_label = _make_label("天气 晴天", 12, Color("#53666f"))
+	date_label = _make_label("06/01", 15, Color("#3b2d23"))
+	clock_label = _make_label("06:00  流速 96倍", 15, Color("#68442f"))
+	segment_label = _make_label("时间 上午", 12, Color("#68442f"))
+	weather_label = _make_label("天气 晴朗", 12, Color("#53666f"))
 	money_label = _make_label("  现金 2600", 14, Color("#2f5d45"))
 	energy_label = _make_label("  体力 78/100", 12, Color("#5b5047"))
 	stress_label = _make_label("  压力 22/100", 12, Color("#8a4b42"))
 	work_label = _make_label("  工作 未工作", 12, Color("#6f5a48"))
-	rent_label = _make_label("  房租 7天后到期", 12, Color("#7b4f30"))
+	rent_label = _make_label("  房租 7 天后到期", 12, Color("#7b4f30"))
 	status_content.add_child(date_label)
 	status_content.add_child(clock_label)
 	status_content.add_child(segment_label)
@@ -328,7 +334,6 @@ func _build_status_panel(root: Control) -> void:
 	status_content.add_child(work_label)
 	status_content.add_child(rent_label)
 	_add_status_icons(status_panel)
-
 
 func _build_goals_panel(root: Control) -> void:
 	goals_panel = PanelContainer.new()
@@ -349,10 +354,9 @@ func _build_goals_panel(root: Control) -> void:
 	goals_margin.add_theme_constant_override("margin_bottom", 8)
 	goals_panel.add_child(goals_margin)
 
-	goals_label = _make_label("今日\n- 去工作\n- 吃点东西\n- 回家睡觉", 11, Color("#ffe9b8"))
+	goals_label = _make_label("今日\n- 探索街区\n- 安排工作和吃饭", 11, Color("#ffe9b8"))
 	goals_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	goals_margin.add_child(goals_label)
-
 
 func _build_prompt_panel(root: Control) -> void:
 	prompt_panel = PanelContainer.new()
@@ -376,10 +380,9 @@ func _build_prompt_panel(root: Control) -> void:
 	prompt_margin.add_theme_constant_override("margin_bottom", 6)
 	prompt_panel.add_child(prompt_margin)
 
-	prompt_label = _make_label("按 E 互动", 13, Color("#ffe6a3"))
+	prompt_label = _make_label("按互动键互动", 13, Color("#ffe6a3"))
 	prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt_margin.add_child(prompt_label)
-
 
 func _build_minimap(root: Control) -> void:
 	minimap_panel = PanelContainer.new()
@@ -402,7 +405,7 @@ func _build_minimap(root: Control) -> void:
 	minimap_box.add_theme_constant_override("separation", 6)
 	minimap_margin.add_child(minimap_box)
 
-	minimap_title = _make_label("上海街区", 13, Color("#f7e3b2"))
+	minimap_title = _make_label("街区小地图", 13, Color("#f7e3b2"))
 	minimap_box.add_child(minimap_title)
 
 	minimap_canvas = Control.new()
@@ -412,7 +415,6 @@ func _build_minimap(root: Control) -> void:
 		_draw_minimap()
 	)
 	minimap_box.add_child(minimap_canvas)
-
 
 func _build_function_bar(root: Control) -> void:
 	function_bar_panel = PanelContainer.new()
@@ -439,7 +441,7 @@ func _build_function_bar(root: Control) -> void:
 	dock_row.add_theme_constant_override("separation", 8)
 	function_margin.add_child(dock_row)
 
-	character_tab_button = _make_dock_icon_button("character", "角色状态")
+	character_tab_button = _make_dock_icon_button("character", "角色属性")
 	character_tab_button.pressed.connect(func() -> void:
 		_set_function_tab("attributes")
 	)
@@ -457,13 +459,13 @@ func _build_function_bar(root: Control) -> void:
 	)
 	dock_row.add_child(inventory_tab_button)
 
-	city_tab_button = _make_dock_icon_button("city", "城市地图")
+	city_tab_button = _make_dock_icon_button("city", "城市信息")
 	city_tab_button.pressed.connect(func() -> void:
 		_set_function_tab("city")
 	)
 	dock_row.add_child(city_tab_button)
 
-	tasks_tab_button = _make_dock_icon_button("tasks", "今日事项")
+	tasks_tab_button = _make_dock_icon_button("tasks", "今日目标")
 	tasks_tab_button.pressed.connect(func() -> void:
 		_set_function_tab("tasks")
 	)
@@ -498,7 +500,7 @@ func _build_function_bar(root: Control) -> void:
 	header_row.add_theme_constant_override("separation", 8)
 	function_box.add_child(header_row)
 
-	function_bar_title = _make_label("手机", 14, Color("#f7e3b2"))
+	function_bar_title = _make_label("功能栏", 14, Color("#f7e3b2"))
 	header_row.add_child(function_bar_title)
 
 	var spacer := Control.new()
@@ -506,7 +508,7 @@ func _build_function_bar(root: Control) -> void:
 	header_row.add_child(spacer)
 
 	var close_button := Button.new()
-	close_button.text = "×"
+	close_button.text = "关"
 	close_button.custom_minimum_size = Vector2(32, 24)
 	_apply_pixel_button_style(close_button)
 	close_button.pressed.connect(_close_function_panel)
@@ -519,15 +521,12 @@ func _build_function_bar(root: Control) -> void:
 	character_view = VBoxContainer.new()
 	character_view.add_theme_constant_override("separation", 6)
 	function_box.add_child(character_view)
-
 	character_summary_label = _make_label("", 13, Color("#fff4cf"))
 	character_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	character_view.add_child(character_summary_label)
-
 	character_status_label = _make_label("", 12, Color("#d5cabd"))
 	character_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	character_view.add_child(character_status_label)
-
 	character_relationships_label = _make_label("", 12, Color("#f0dfb5"))
 	character_relationships_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	character_view.add_child(character_relationships_label)
@@ -535,7 +534,6 @@ func _build_function_bar(root: Control) -> void:
 	contacts_view = VBoxContainer.new()
 	contacts_view.add_theme_constant_override("separation", 6)
 	function_box.add_child(contacts_view)
-
 	contacts_summary_label = _make_label("", 12, Color("#f0dfb5"))
 	contacts_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	contacts_view.add_child(contacts_summary_label)
@@ -543,11 +541,9 @@ func _build_function_bar(root: Control) -> void:
 	inventory_view = VBoxContainer.new()
 	inventory_view.add_theme_constant_override("separation", 6)
 	function_box.add_child(inventory_view)
-
 	inventory_empty_label = _make_label("", 12, Color("#d5cabd"))
 	inventory_empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inventory_view.add_child(inventory_empty_label)
-
 	inventory_list = VBoxContainer.new()
 	inventory_list.add_theme_constant_override("separation", 4)
 	inventory_view.add_child(inventory_list)
@@ -555,7 +551,6 @@ func _build_function_bar(root: Control) -> void:
 	city_view = VBoxContainer.new()
 	city_view.add_theme_constant_override("separation", 6)
 	function_box.add_child(city_view)
-
 	city_summary_label = _make_label("", 12, Color("#d5cabd"))
 	city_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	city_view.add_child(city_summary_label)
@@ -563,7 +558,6 @@ func _build_function_bar(root: Control) -> void:
 	tasks_view = VBoxContainer.new()
 	tasks_view.add_theme_constant_override("separation", 6)
 	function_box.add_child(tasks_view)
-
 	tasks_summary_label = _make_label("", 12, Color("#d5cabd"))
 	tasks_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tasks_view.add_child(tasks_summary_label)
@@ -571,7 +565,6 @@ func _build_function_bar(root: Control) -> void:
 	function_bar_message = _make_label("", 11, Color("#cdbb94"))
 	function_bar_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	function_box.add_child(function_bar_message)
-
 
 func _build_sidebar_toggle(root: Control) -> void:
 	sidebar_toggle_button = Button.new()
@@ -601,27 +594,23 @@ func _build_dialog(root: Control) -> void:
 	dialog_panel.offset_top = -304
 	dialog_panel.offset_bottom = -200
 	root.add_child(dialog_panel)
-
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
 	margin.add_theme_constant_override("margin_right", 14)
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_theme_constant_override("margin_bottom", 8)
 	dialog_panel.add_child(margin)
-
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 5)
 	margin.add_child(box)
-
-	speaker_label = _make_label("Speaker", 14, Color("#68442f"))
-	dialog_label = _make_label("Hello.", 13, Color("#302821"))
+	speaker_label = _make_label("说话的人", 14, Color("#68442f"))
+	dialog_label = _make_label("你好。", 13, Color("#302821"))
 	dialog_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialog_hint = _make_label("按 E 继续", 11, Color("#7b6a56"))
+	dialog_hint = _make_label("按互动键继续，取消键关闭", 11, Color("#7b6a56"))
 	dialog_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	box.add_child(speaker_label)
 	box.add_child(dialog_label)
 	box.add_child(dialog_hint)
-
 
 func _build_shop(root: Control) -> void:
 	shop_panel = PanelContainer.new()
@@ -637,18 +626,15 @@ func _build_shop(root: Control) -> void:
 	shop_panel.offset_top = -112
 	shop_panel.offset_bottom = 112
 	root.add_child(shop_panel)
-
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
 	margin.add_theme_constant_override("margin_right", 14)
 	margin.add_theme_constant_override("margin_top", 12)
 	margin.add_theme_constant_override("margin_bottom", 10)
 	shop_panel.add_child(margin)
-
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	margin.add_child(box)
-
 	shop_title = _make_label("商店", 16, Color("#3b4b34"))
 	shop_items_label = _make_label("", 13, Color("#2f342d"))
 	shop_message_label = _make_label("", 11, Color("#68704e"))
@@ -657,7 +643,6 @@ func _build_shop(root: Control) -> void:
 	box.add_child(shop_title)
 	box.add_child(shop_items_label)
 	box.add_child(shop_message_label)
-
 
 func _toggle_sidebar() -> void:
 	sidebar_collapsed = not sidebar_collapsed
@@ -752,20 +737,20 @@ func _refresh_function_bar() -> void:
 		elif showing_city:
 			function_bar_title.text = "城市"
 		elif showing_tasks:
-			function_bar_title.text = "今日事项"
+			function_bar_title.text = "目标"
 		else:
-			function_bar_title.text = "角色状态"
+			function_bar_title.text = "角色"
 	if function_bar_hint != null:
 		if showing_inventory:
 			function_bar_hint.text = "按 1-9 或点击物品使用。"
 		elif showing_contacts:
-			function_bar_hint.text = "每天聊天一次；当天聊过后再互动，会分享包里的食物。"
+			function_bar_hint.text = "每天和居民聊一次，慢慢建立关系。"
 		elif showing_city:
-			function_bar_hint.text = "用手机确认当前位置、住处和通勤压力。"
+			function_bar_hint.text = "查看当前区域、住处和通勤成本。"
 		elif showing_tasks:
-			function_bar_hint.text = "今天先做最紧急的事，不要把自己耗空。"
+			function_bar_hint.text = "简短目标会提示今天最该处理的事。"
 		else:
-			function_bar_hint.text = "规划工作、吃饭和休息前，先看清自己的状态。"
+			function_bar_hint.text = "快速查看现金、体力、压力、房租和人际关系。"
 	if character_view != null:
 		character_view.visible = showing_character
 	if contacts_view != null:
@@ -783,7 +768,6 @@ func _refresh_function_bar() -> void:
 	_refresh_tasks_view()
 	_refresh_function_bar_message()
 
-
 func _refresh_character_view() -> void:
 	if character_summary_label == null or character_status_label == null or character_relationships_label == null:
 		return
@@ -792,18 +776,22 @@ func _refresh_character_view() -> void:
 	var max_energy: int = int(function_status.get("max_energy", 100))
 	var stress: int = int(function_status.get("stress", 0))
 	var max_stress: int = int(function_status.get("max_stress", 100))
-	var date_text: String = str(function_status.get("date", "6/1"))
+	var date_text: String = str(function_status.get("date", "06/01"))
 	var clock_text: String = str(function_status.get("clock", "06:00"))
 	var segment_text: String = str(function_status.get("segment", "上午"))
-	var weather_text: String = str(function_status.get("weather", "晴天"))
+	var weather_text: String = str(function_status.get("weather", "晴朗"))
 	var work_text: String = str(function_status.get("work_performance", "未工作"))
-	var rent_text: String = str(function_status.get("rent_label", "7天后到期"))
+	var rent_text: String = str(function_status.get("rent_label", "房租未到期"))
 	var housing_text: String = str(function_status.get("housing_label", "城中村合租"))
 	var commute_fare: int = int(function_status.get("commute_fare", 6))
+	var reputation: int = int(function_status.get("reputation", 0))
+	var reputation_label: String = str(function_status.get("reputation_label", "无人认识"))
+	var city_name: String = str(function_status.get("city_name", "上海"))
+	var city_reputation: int = int(function_status.get("city_reputation", 0))
+	var city_reputation_label: String = str(function_status.get("city_reputation_label", "初来乍到"))
 	character_summary_label.text = "现金 %d    体力 %d/%d    压力 %d/%d" % [money, energy, max_energy, stress, max_stress]
-	character_status_label.text = "日期 %s    时间 %s / %s    天气 %s\n工作 %s\n住房 %s    通勤 %d元\n房租 %s" % [date_text, clock_text, segment_text, weather_text, work_text, housing_text, commute_fare, rent_text]
-	character_relationships_label.text = "联系人已拆到独立页面。点底部第二个图标查看关系、赠礼和熟人加成。"
-
+	character_status_label.text = "日期 %s    时间 %s / %s    天气 %s\n工作 %s    总声望 %d（%s）\n%s声望 %d（%s）\n住处 %s    通勤 %d    房租 %s" % [date_text, clock_text, segment_text, weather_text, work_text, reputation, reputation_label, city_name, city_reputation, city_reputation_label, housing_text, commute_fare, rent_text]
+	character_relationships_label.text = "联系人\n%s" % _build_relationships_text()
 
 func _refresh_contacts_view() -> void:
 	if contacts_summary_label == null:
@@ -811,18 +799,17 @@ func _refresh_contacts_view() -> void:
 	var talked_count: int = int(function_status.get("talked_today_count", 0))
 	var npc_count: int = int(function_status.get("npc_count", 0))
 	var lines := PackedStringArray()
-	lines.append("今日已聊 %d/%d" % [talked_count, npc_count])
+	lines.append("今日已交流 %d/%d" % [talked_count, npc_count])
 	lines.append(_build_relationships_text())
 	var perks: Array = function_status.get("relationship_perks", [])
 	if perks.is_empty():
-		lines.append("熟人加成：暂无。先每天打招呼，关系到 7/12 会开始影响生活。")
+		lines.append("还没有关系加成。继续和城市里的人保持联系。")
 	else:
-		lines.append("熟人加成")
+		lines.append("关系加成")
 		for perk_variant in perks:
 			lines.append("- %s" % str(perk_variant))
-	lines.append("赠礼：当天聊过后，再和 NPC 互动会分享包里的第一份食物。")
+	lines.append("提示：和居民聊天可以降低压力，也会慢慢解锁小帮助。")
 	contacts_summary_label.text = "\n".join(lines)
-
 
 func _refresh_inventory_view() -> void:
 	if inventory_view == null or inventory_empty_label == null or inventory_list == null:
@@ -831,7 +818,7 @@ func _refresh_inventory_view() -> void:
 		child.queue_free()
 	if function_inventory.is_empty():
 		inventory_empty_label.visible = true
-		inventory_empty_label.text = "包里是空的。先去买点吃的或喝的，需要时再回来使用。"
+		inventory_empty_label.text = "背包是空的。先去购买食物或用品，需要时再在这里使用。"
 		return
 	inventory_empty_label.visible = false
 	for i in range(function_inventory.size()):
@@ -839,13 +826,13 @@ func _refresh_inventory_view() -> void:
 		var quantity: int = int(item.get("quantity", 1))
 		var energy: int = int(item.get("energy", 0))
 		var stress_relief: int = int(item.get("stress_relief", 0))
-		var stress_text := "压力 -%d" % stress_relief
+		var stress_text: String = "压力 -%d" % stress_relief
 		if stress_relief < 0:
 			stress_text = "压力 +%d" % abs(stress_relief)
 		var use_button := Button.new()
 		use_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		use_button.text = "%d. %s x%d   体力 +%d   %s" % [i + 1, str(item.get("name", "物品")), quantity, energy, stress_text]
-		use_button.tooltip_text = "使用这个物品。"
+		use_button.text = "%d. %s ×%d   体力 +%d   %s" % [i + 1, str(item.get("name", "物品")), quantity, energy, stress_text]
+		use_button.tooltip_text = "使用这个背包物品。"
 		_apply_pixel_button_style(use_button)
 		var use_index := i
 		use_button.pressed.connect(func() -> void:
@@ -853,15 +840,14 @@ func _refresh_inventory_view() -> void:
 		)
 		inventory_list.add_child(use_button)
 
-
 func _build_relationships_text() -> String:
 	var relationships: Array = function_status.get("relationships", [])
 	if relationships.is_empty():
-		return "- 还没认识谁。"
+		return "- 还没有联系人。去城市里和人聊聊。"
 	var sorted: Array = relationships.duplicate()
 	sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var a_talked := bool(a.get("talked_today", false))
-		var b_talked := bool(b.get("talked_today", false))
+		var a_talked: bool = bool(a.get("talked_today", false))
+		var b_talked: bool = bool(b.get("talked_today", false))
 		if a_talked != b_talked:
 			return not a_talked
 		return int(a.get("value", 0)) > int(b.get("value", 0))
@@ -870,11 +856,11 @@ func _build_relationships_text() -> String:
 	for i in range(min(5, sorted.size())):
 		var entry: Dictionary = sorted[i]
 		var value: int = int(entry.get("value", 0))
-		var talked := bool(entry.get("talked_today", false))
-		var state := "已聊" if talked else "可聊"
+		var talked: bool = bool(entry.get("talked_today", false))
+		var state: String = "已聊过" if talked else "可交流"
 		lines.append("- %s  %s %s  %s" % [
-			str(entry.get("name", "NPC")),
-			str(entry.get("level", "陌生")),
+			str(entry.get("name", "居民")),
+			str(entry.get("level", "Stranger")),
 			_relationship_bar(value),
 			state,
 		])
@@ -882,12 +868,33 @@ func _build_relationships_text() -> String:
 
 
 func _relationship_bar(value: int) -> String:
-	var filled := clampi(int(ceil(float(value) / 3.0)), 0, 4)
+	var filled: int = clampi(int(ceil(float(value) / 3.0)), 0, 4)
 	var chunks := PackedStringArray()
 	for i in range(4):
-		chunks.append("■" if i < filled else "□")
+		chunks.append("#" if i < filled else "-")
 	return "".join(chunks)
 
+
+func _build_land_text() -> String:
+	var lands: Array = function_status.get("owned_land", [])
+	if lands.is_empty():
+		return "- 暂无。先积累当前城市声望，再去房产中介看看。"
+	var lines := PackedStringArray()
+	for land_variant in lands:
+		var land: Dictionary = land_variant
+		lines.append("- %s" % str(land.get("name", "地皮")))
+	return "\n".join(lines)
+
+
+func _build_company_text() -> String:
+	var companies: Array = function_status.get("owned_companies", [])
+	if companies.is_empty():
+		return "- 暂无。买下地皮后可以开办小公司。"
+	var lines := PackedStringArray()
+	for company_variant in companies:
+		var company: Dictionary = company_variant
+		lines.append("- %s  每日 +%d" % [str(company.get("name", "公司")), int(company.get("daily_income", 0))])
+	return "\n".join(lines)
 
 func _refresh_city_view() -> void:
 	if city_summary_label == null:
@@ -897,15 +904,35 @@ func _refresh_city_view() -> void:
 	var commute_energy: int = int(function_status.get("commute_energy_cost", 4))
 	var commute_stress: int = int(function_status.get("commute_stress_gain", 2))
 	var housing_id: String = str(function_status.get("housing_id", "urban_village"))
-	city_summary_label.text = "当前位置：%s\n当前住处：%s\n通勤成本：%d元 / 体力 -%d / 压力 +%d\n住处影响：%s\n地图提示：左上角小地图会标出当前目标。" % [
+	var reputation: int = int(function_status.get("reputation", 0))
+	var reputation_label: String = str(function_status.get("reputation_label", "无人认识"))
+	var city_reputation_text: String = _build_city_reputation_text()
+	var company_income: int = int(function_status.get("company_daily_income", 0))
+	city_summary_label.text = "区域 %s\n住处 %s\n通勤成本 %d / 体力 -%d / 压力 +%d\n住处影响 %s\n总声望 %d（%s）\n城市声望\n%s\n地皮\n%s\n公司\n%s\n昨日经营收入 %d\n去房产中介可以购买地皮、开办公司。" % [
 		_get_scene_label(minimap_scene_key),
 		housing_text,
 		commute_fare,
 		commute_energy,
 		commute_stress,
 		_get_housing_effect_label(housing_id),
+		reputation,
+		reputation_label,
+		city_reputation_text,
+		_build_land_text(),
+		_build_company_text(),
+		company_income,
 	]
 
+
+func _build_city_reputation_text() -> String:
+	var reputations: Array = function_status.get("city_reputations", [])
+	if reputations.is_empty():
+		return "- 暂无城市声望。"
+	var lines := PackedStringArray()
+	for item_variant in reputations:
+		var item: Dictionary = item_variant
+		lines.append("- %s %d（%s）" % [str(item.get("name", "城市")), int(item.get("value", 0)), str(item.get("label", "初来乍到"))])
+	return "\n".join(lines)
 
 func _refresh_tasks_view() -> void:
 	if tasks_summary_label == null:
@@ -920,18 +947,17 @@ func _refresh_function_bar_message() -> void:
 		function_bar_message.text = function_bar_notice
 		return
 	if current_function_tab == "inventory":
-		function_bar_message.text = "购买的食物会先进入背包，只有使用后才恢复状态。"
+		function_bar_message.text = "买到的东西会先进入背包。体力或压力紧张时再使用。"
 	elif current_function_tab == "contacts":
-		function_bar_message.text = "关系不是恋爱系统，是上海生活里一点点熟人帮助。"
+		function_bar_message.text = "联系人系统很轻量，但有用：聊天会影响压力，也会带来后续帮助。"
 	elif current_function_tab == "city":
-		function_bar_message.text = "租房会改变家门口、屋内风格和通勤消耗。"
+		function_bar_message.text = "当前城市声望会解锁当地地皮和公司。换城市后，需要重新建立本地口碑。"
 	elif current_function_tab == "tasks":
-		function_bar_message.text = "这不是任务清单，只是今天活下去的提醒。"
+		function_bar_message.text = "目标只是提示，不是任务清单。它会指向下一件有用的事。"
 	elif current_function_tab == "closed":
 		function_bar_message.text = ""
 	else:
-		function_bar_message.text = "底部手机已经收起，点图标打开具体面板。"
-
+		function_bar_message.text = "打开前两个功能，可以查看角色状态和背包。"
 
 func _build_goals_text(status: Dictionary) -> String:
 	var goals := PackedStringArray()
@@ -944,106 +970,81 @@ func _build_goals_text(status: Dictionary) -> String:
 	var current_delivery_state: String = str(status.get("delivery_state", "none"))
 	var talked_count: int = int(status.get("talked_today_count", 0))
 	var npc_count: int = int(status.get("npc_count", 0))
-
+	var city_reputation: int = int(status.get("city_reputation", 0))
+	var lands: Array = status.get("owned_land", [])
+	var companies: Array = status.get("owned_companies", [])
 	if rent_overdue > 0:
-		goals.append("- 房租逾期了，回家交房租。")
+		goals.append("- 房租已经逾期。回家把它处理掉。")
 	elif rent_due_in == 0:
 		goals.append("- 房租今天到期。")
 	elif rent_due_in <= 2:
-		goals.append("- 留现金准备交房租。")
-
+		goals.append("- 留出现金准备交房租。")
 	if current_delivery_state == "accepted":
 		goals.append("- 去取外卖订单。")
 	elif current_delivery_state == "picked":
-		goals.append("- 去完成外卖送达。")
+		goals.append("- 把外卖送到目的地。")
 	elif not worked_today and segment_key in ["morning", "afternoon"]:
-		goals.append("- 选一条今天的工作路线。")
+		goals.append("- 为今天选择一条工作路线。")
 	elif not worked_today and segment_key == "evening":
-		goals.append("- 传媒公司还能接晚间活。")
+		goals.append("- 晚些时候还可以去传媒公司硬撑一班。")
 	elif worked_today:
-		goals.append("- 今天工作完成，先恢复。")
-
+		goals.append("- 今天已经工作过了。为明天恢复一下。")
+	if city_reputation >= 5 and lands.is_empty():
+		goals.append("- 当前城市声望够买第一块地皮了，去房产中介看看。")
+	elif city_reputation >= 12 and not lands.is_empty() and companies.is_empty():
+		goals.append("- 当前城市声望够了，可以尝试开办第一家公司。")
 	if energy < 45:
-		goals.append("- 买吃的，或用包里的食物。")
+		goals.append("- 使用背包里的食物，或买点东西吃。")
 	if stress >= 60:
-		goals.append("- 聊天、休息或去诊所降压。")
+		goals.append("- 通过聊天、休息或去诊所降低压力。")
 	elif talked_count < npc_count and segment_key in ["afternoon", "evening"]:
-		goals.append("- 和附近的人聊聊，关系也能帮你喘口气。")
+		goals.append("- 天黑前和附近的人聊一聊。")
 	if segment_key in ["evening", "late_night"]:
 		goals.append("- 回家睡觉，进入下一天。")
 	if goals.is_empty():
-		goals.append("- 逛逛街区，和人说说话。")
-		goals.append("- 规划工作、吃饭和房租。")
-
+		goals.append("- 探索街区，和人聊聊。")
+		goals.append("- 安排工作、吃饭和房租。")
 	var selected := PackedStringArray()
 	for i in range(min(3, goals.size())):
 		selected.append(goals[i])
 	return "今日\n%s" % "\n".join(selected)
-
 
 func _get_scene_label(scene_key: String) -> String:
 	match scene_key:
 		"apartment":
 			return "出租屋"
 		"office":
-			return "公司工位"
+			return "写字楼"
 		"media_company":
 			return "传媒公司"
 		"metro_station":
 			return "地铁站"
 		"wet_market":
-			return "菜场"
+			return "菜市场"
 		"clinic":
-			return "社区诊所"
+			return "诊所"
+		"qikai_district":
+			return "汽开区"
+		"faw_factory":
+			return "第一汽车制造厂"
+		"tang_changan":
+			return "唐长安"
+		"republic_shanghai":
+			return "民国上海"
 		_:
-			return "上海街区"
-
+			return "街区"
 
 func _get_housing_effect_label(housing_id: String) -> String:
 	match housing_id:
 		"far_suburb":
-			return "房租低，但睡眠恢复和冰箱较弱，通勤压力更高。"
+			return "房租低，通勤远，疲劳更高。"
 		"talent_apartment":
-			return "睡眠和冰箱更好，交租后更安心，但房租很高。"
+			return "房租更高，通勤更短，恢复更好。"
 		_:
-			return "恢复中等，房租和通勤都比较折中。"
-
+			return "房租和通勤压力较均衡。"
 
 func _zh_prompt(text: String) -> String:
-	match text:
-		"Press E to enter the apartment":
-			return "按 E 回家"
-		"Press E to shop":
-			return "按 E 购物"
-		"Press E to enter the metro":
-			return "按 E 进地铁站"
-		"Press E to buy food":
-			return "按 E 买饭"
-		"Press E to buy coffee":
-			return "按 E 买咖啡"
-		"Press E to enter the office":
-			return "按 E 进公司"
-		"Press E to enter the media company":
-			return "按 E 进传媒公司"
-		"Press E to accept a delivery order":
-			return "按 E 接外卖单"
-		"Press E to pick up food":
-			return "按 E 取餐"
-		"Press E to deliver food":
-			return "按 E 送达"
-		"Press E to enter the wet market":
-			return "按 E 进菜场"
-		"Press E to enter the clinic":
-			return "按 E 进诊所"
-		"Press E to inspect the talent apartment":
-			return "按 E 查看人才公寓"
-		"Press E to check rental listings":
-			return "按 E 看租房信息"
-		"Press E to interact":
-			return "按 E 互动"
-		_:
-			return text
-
+	return text
 
 func _pixel_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -1074,20 +1075,19 @@ func _apply_pixel_button_style(button: Button) -> void:
 func _get_minimap_title(scene_key: String) -> String:
 	match scene_key:
 		"apartment":
-			return "出租屋"
+			return "出租屋小地图"
 		"office":
-			return "公司"
+			return "写字楼小地图"
 		"media_company":
-			return "直播间"
+			return "传媒公司小地图"
 		"metro_station":
-			return "地铁"
+			return "地铁站小地图"
 		"wet_market":
-			return "菜场"
+			return "菜市场小地图"
 		"clinic":
-			return "诊所"
+			return "诊所小地图"
 		_:
-			return "上海街区"
-
+			return "街区小地图"
 
 func _draw_minimap() -> void:
 	if minimap_canvas == null:
@@ -1139,13 +1139,28 @@ func _draw_minimap_scene_background(inner_rect: Rect2) -> void:
 			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.16, 0.62, 0.30, 0.16)), Color(0.66, 0.82, 0.74, 0.44))
 			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.42, 0.82, 0.18, 0.08)), Color(0.86, 0.96, 0.90, 0.62))
 		_:
-			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.28, 0.10)), _minimap_point(inner_rect, Vector2(0.28, 0.90)), Color(0.46, 0.44, 0.38, 0.55), 3.0)
-			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.14, 0.32)), _minimap_point(inner_rect, Vector2(0.76, 0.34)), Color(0.46, 0.44, 0.38, 0.52), 3.0)
-			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.10, 0.74)), _minimap_point(inner_rect, Vector2(0.64, 0.48)), Color(0.46, 0.44, 0.38, 0.52), 3.0)
-			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.68, 0.02, 0.10, 0.96)), Color(0.26, 0.40, 0.48, 0.72))
-			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.38, 0.12, 0.10, 0.08)), Color(0.38, 0.50, 0.34, 0.42))
-			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.82, 0.12, 0.12, 0.16)), Color(0.48, 0.62, 0.72, 0.42))
-			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.18, 0.72, 0.16, 0.10)), Color(0.75, 0.58, 0.36, 0.42))
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.485, 0.02)), _minimap_point(inner_rect, Vector2(0.485, 0.98)), Color(0.46, 0.44, 0.38, 0.55), 2.0)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.02, 0.474)), _minimap_point(inner_rect, Vector2(0.98, 0.474)), Color(0.46, 0.44, 0.38, 0.55), 2.0)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.08, 0.263)), _minimap_point(inner_rect, Vector2(0.94, 0.263)), Color(0.46, 0.44, 0.38, 0.48), 2.0)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.667, 0.10)), _minimap_point(inner_rect, Vector2(0.667, 0.81)), Color(0.46, 0.44, 0.38, 0.48), 2.0)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.06, 0.789)), _minimap_point(inner_rect, Vector2(0.35, 0.789)), Color(0.46, 0.44, 0.38, 0.48), 2.0)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.303, 0.263)), _minimap_point(inner_rect, Vector2(0.303, 0.81)), Color(0.46, 0.44, 0.38, 0.48), 2.0)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.03, 0.123)), _minimap_point(inner_rect, Vector2(0.24, 0.123)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.232, 0.123)), _minimap_point(inner_rect, Vector2(0.232, 0.263)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.404, 0.123)), _minimap_point(inner_rect, Vector2(0.495, 0.123)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.566, 0.175)), _minimap_point(inner_rect, Vector2(0.566, 0.263)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.667, 0.175)), _minimap_point(inner_rect, Vector2(0.778, 0.175)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.131, 0.298)), _minimap_point(inner_rect, Vector2(0.313, 0.298)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.303, 0.333)), _minimap_point(inner_rect, Vector2(0.354, 0.333)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.455, 0.386)), _minimap_point(inner_rect, Vector2(0.677, 0.386)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.111, 0.667)), _minimap_point(inner_rect, Vector2(0.111, 0.807)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_line(_minimap_point(inner_rect, Vector2(0.232, 0.632)), _minimap_point(inner_rect, Vector2(0.232, 0.807)), Color(0.46, 0.44, 0.38, 0.38), 1.5)
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.828, 0.02, 0.04, 0.96)), Color(0.26, 0.40, 0.48, 0.72))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.04, 0.07, 0.06, 0.06)), Color(0.75, 0.58, 0.44, 0.42))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.42, 0.07, 0.06, 0.06)), Color(0.86, 0.46, 0.56, 0.42))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.55, 0.14, 0.06, 0.07)), Color(0.48, 0.62, 0.72, 0.42))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.88, 0.18, 0.08, 0.12)), Color(0.48, 0.62, 0.72, 0.42))
+			minimap_canvas.draw_rect(_minimap_subrect(inner_rect, Rect2(0.09, 0.67, 0.06, 0.05)), Color(0.75, 0.58, 0.36, 0.42))
 
 
 func _draw_minimap_grid(inner_rect: Rect2) -> void:
@@ -1201,8 +1216,8 @@ func _draw_minimap_legend(legend_rect: Rect2) -> void:
 	var entries := _get_minimap_legend_entries()
 	for i in range(entries.size()):
 		var entry: Dictionary = entries[i]
-		var col := i % 3
-		var row := int(i / 3)
+		var col: int = i % 3
+		var row: int = int(i / 3)
 		var origin := legend_rect.position + Vector2(6 + col * 48, 4 + row * 8)
 		_draw_minimap_legend_marker(origin + Vector2(3, 3), str(entry.get("kind", "place")), entry.get("color", Color("#f0c77b")))
 		_draw_minimap_tiny_text(origin + Vector2(9, 0), str(entry.get("label", "")), Color("#f7e3b2"))
@@ -1223,11 +1238,11 @@ func _get_minimap_legend_entries() -> Array[Dictionary]:
 				{"kind": "metro", "label": "地铁", "color": Color("#a9d7ff")},
 				{"kind": "food", "label": "吃饭", "color": Color("#d8c886")},
 				{"kind": "clinic", "label": "诊所", "color": Color("#d8fff0")},
-				{"kind": "rent", "label": "租房", "color": Color("#e8c879")},
+				{"kind": "rent", "label": "房租", "color": Color("#e8c879")},
 			]
 		"office":
 			return [
-				{"kind": "work", "label": "工位", "color": Color("#c7e7ff")},
+				{"kind": "work", "label": "工作", "color": Color("#c7e7ff")},
 				{"kind": "exit", "label": "出口", "color": Color("#e8c879")},
 				{"kind": "player", "label": "你", "color": Color("#f08f5a")},
 			]
@@ -1239,8 +1254,8 @@ func _get_minimap_legend_entries() -> Array[Dictionary]:
 			]
 		"metro_station":
 			return [
-				{"kind": "metro", "label": "闸机", "color": Color("#a9d7ff")},
-				{"kind": "info", "label": "售票", "color": Color("#b8d8c4")},
+				{"kind": "metro", "label": "列车", "color": Color("#a9d7ff")},
+				{"kind": "info", "label": "信息", "color": Color("#b8d8c4")},
 				{"kind": "exit", "label": "出口", "color": Color("#e8c879")},
 			]
 		"apartment":
@@ -1251,13 +1266,13 @@ func _get_minimap_legend_entries() -> Array[Dictionary]:
 			]
 		"wet_market":
 			return [
-				{"kind": "food", "label": "买菜", "color": Color("#d8c886")},
+				{"kind": "food", "label": "食物", "color": Color("#d8c886")},
 				{"kind": "exit", "label": "出口", "color": Color("#e8c879")},
 				{"kind": "player", "label": "你", "color": Color("#f08f5a")},
 			]
 		"clinic":
 			return [
-				{"kind": "clinic", "label": "挂号", "color": Color("#d8fff0")},
+				{"kind": "clinic", "label": "治疗", "color": Color("#d8fff0")},
 				{"kind": "exit", "label": "出口", "color": Color("#e8c879")},
 				{"kind": "player", "label": "你", "color": Color("#f08f5a")},
 			]
@@ -1265,7 +1280,6 @@ func _get_minimap_legend_entries() -> Array[Dictionary]:
 		{"kind": "player", "label": "你", "color": Color("#f08f5a")},
 		{"kind": "exit", "label": "出口", "color": Color("#e8c879")},
 	]
-
 
 func _draw_minimap_legend_marker(center: Vector2, kind: String, color: Color) -> void:
 	if kind == "objective":
@@ -1288,62 +1302,17 @@ func _draw_minimap_tiny_text(pos: Vector2, text: String, color: Color) -> void:
 func _draw_minimap_glyph(pos: Vector2, glyph: String, color: Color) -> void:
 	var p := Vector2(round(pos.x), round(pos.y))
 	match glyph:
-		"你":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 0), Vector2(3, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(2, 1), Vector2(1, 5)), color)
+		" ":
+			return
+		".":
+			minimap_canvas.draw_rect(Rect2(p + Vector2(2, 5), Vector2(1, 1)), color)
+		"-":
 			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 3), Vector2(5, 1)), color)
-		"家":
-			minimap_canvas.draw_colored_polygon(PackedVector2Array([p + Vector2(0, 3), p + Vector2(2, 0), p + Vector2(5, 3)]), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 3), Vector2(4, 3)), color)
-		"工", "作":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 0), Vector2(5, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(2, 1), Vector2(1, 4)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 5), Vector2(5, 1)), color)
-		"地", "铁":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 0), Vector2(5, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 1), Vector2(1, 5)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(3, 1), Vector2(1, 5)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 5), Vector2(5, 1)), color)
-		"吃", "饭", "菜":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 1), Vector2(2, 4)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(3, 0), Vector2(2, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(2, 3), Vector2(3, 1)), color)
-		"诊", "所", "挂", "号":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(2, 0), Vector2(1, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 2), Vector2(5, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 4), Vector2(3, 1)), color)
-		"租", "房":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 0), Vector2(3, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 2), Vector2(5, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 3), Vector2(1, 3)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(4, 3), Vector2(1, 3)), color)
-		"目", "标":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 0), Vector2(3, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 2), Vector2(5, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 4), Vector2(5, 1)), color)
-		"出", "口":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 1), Vector2(5, 4)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 2), Vector2(3, 2)), Color(0.08, 0.08, 0.07, 0.58))
-		"直", "播":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 1), Vector2(3, 3)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(2, 4), Vector2(1, 2)), color)
-		"售", "票":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 0), Vector2(5, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 1), Vector2(3, 1)), Color(0.08, 0.08, 0.07, 0.58))
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 4), Vector2(3, 1)), Color(0.08, 0.08, 0.07, 0.58))
-		"闸", "机":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 0), Vector2(1, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(4, 0), Vector2(1, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 2), Vector2(3, 1)), color)
-		"格":
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 0), Vector2(1, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(2, 0), Vector2(1, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(4, 0), Vector2(1, 6)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 2), Vector2(5, 1)), color)
-			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 5), Vector2(5, 1)), color)
 		_:
-			minimap_canvas.draw_rect(Rect2(p + Vector2(1, 1), Vector2(3, 3)), color)
-
+			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 0), Vector2(5, 1)), color)
+			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 5), Vector2(5, 1)), color)
+			minimap_canvas.draw_rect(Rect2(p + Vector2(0, 1), Vector2(1, 4)), color)
+			minimap_canvas.draw_rect(Rect2(p + Vector2(4, 1), Vector2(1, 4)), color)
 
 func _draw_minimap_player(inner_rect: Rect2) -> void:
 	var canvas_point := _minimap_world_to_canvas(inner_rect, minimap_player_position)
@@ -1407,8 +1376,8 @@ func _draw_minimap_arrow(center: Vector2, direction: Vector2) -> void:
 
 
 func _draw_minimap_distance_label(inner_rect: Rect2, arrow_point: Vector2, distance: float) -> void:
-	var steps := max(1, int(round(distance / 64.0)))
-	var text := "%d格" % steps
+	var steps: int = maxi(1, int(round(distance / 64.0)))
+	var text: String = "%d格" % steps
 	var label_pos := arrow_point + Vector2(8, -4)
 	if label_pos.x + 22 > inner_rect.end.x:
 		label_pos.x = arrow_point.x - 26
