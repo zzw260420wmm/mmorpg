@@ -3,12 +3,14 @@ class_name ArtAssets
 
 const TILE_SIZE := 16
 const PROP_SIZE := 32
-const CHARACTER_SIZE := 32
+const CHARACTER_SIZE := 64
+const BUILDING_SPRITE_SIZE := Vector2i(192, 128)
 const ICON_SIZE := 16
 
 const TILE_ATLAS_TEXTURE := preload("res://assets/tiles/urban_life_tileset.png")
 const PROP_ATLAS_TEXTURE := preload("res://assets/sprites/urban_props_atlas.png")
 const CHARACTER_ATLAS_TEXTURE := preload("res://assets/sprites/characters_atlas.png")
+const BUILDING_ATLAS_TEXTURE := preload("res://assets/sprites/cartoon_buildings_atlas.png")
 const ICON_ATLAS_TEXTURE := preload("res://assets/ui/hud_icons.png")
 
 const TILE_REGIONS := {
@@ -49,14 +51,29 @@ const PROP_REGIONS := {
 }
 
 const CHARACTER_REGIONS := {
-	"player_grad": Rect2(0, 0, 32, 32),
-	"landlord": Rect2(32, 0, 32, 32),
-	"shopkeeper": Rect2(64, 0, 32, 32),
-	"drifter_girl": Rect2(96, 0, 32, 32),
-	"delivery_rider": Rect2(128, 0, 32, 32),
-	"office_worker": Rect2(160, 0, 32, 32),
-	"streamer": Rect2(192, 0, 32, 32),
-	"metro_commuter": Rect2(224, 0, 32, 32),
+	"player_grad": Rect2(0, 0, 64, 64),
+	"landlord": Rect2(64, 0, 64, 64),
+	"shopkeeper": Rect2(128, 0, 64, 64),
+	"drifter_girl": Rect2(192, 0, 64, 64),
+	"delivery_rider": Rect2(256, 0, 64, 64),
+	"office_worker": Rect2(320, 0, 64, 64),
+	"streamer": Rect2(384, 0, 64, 64),
+	"metro_commuter": Rect2(448, 0, 64, 64),
+}
+
+const BUILDING_REGIONS := {
+	"shanghai_lane_house": Rect2(0, 0, 192, 128),
+	"shanghai_convenience_store": Rect2(192, 0, 192, 128),
+	"shanghai_office_tower": Rect2(384, 0, 192, 128),
+	"beijing_hutong_courtyard": Rect2(576, 0, 192, 128),
+	"guangzhou_qilou_shop": Rect2(0, 128, 192, 128),
+	"shenzhen_tech_park": Rect2(192, 128, 192, 128),
+	"chengdu_noodle_shop": Rect2(384, 128, 192, 128),
+	"hangzhou_waterside_house": Rect2(576, 128, 192, 128),
+	"chongqing_slope_apartment": Rect2(0, 256, 192, 128),
+	"wuhan_riverside_market": Rect2(192, 256, 192, 128),
+	"nanjing_plane_tree_block": Rect2(384, 256, 192, 128),
+	"shanghai_media_company": Rect2(576, 256, 192, 128),
 }
 
 const ICON_REGIONS := {
@@ -114,6 +131,16 @@ static func draw_character_frame(canvas: CanvasItem, name: String, top_left: Vec
 static func draw_character_centered(canvas: CanvasItem, name: String, center: Vector2, walking: bool = false, scale: float = 1.0, modulate: Color = Color.WHITE, direction: Vector2 = Vector2.DOWN) -> void:
 	var region: Rect2 = CHARACTER_REGIONS.get(name, CHARACTER_REGIONS["player_grad"])
 	draw_character_frame(canvas, name, center - region.size * scale * 0.5, walking, scale, modulate, direction)
+
+
+static func draw_building_sprite(canvas: CanvasItem, name: String, top_left: Vector2, scale: float = 1.0, modulate: Color = Color.WHITE) -> void:
+	var region: Rect2 = BUILDING_REGIONS.get(name, BUILDING_REGIONS["shanghai_lane_house"])
+	canvas.draw_texture_rect_region(BUILDING_ATLAS_TEXTURE, Rect2(top_left, region.size * scale), region, modulate)
+
+
+static func draw_building_sprite_centered(canvas: CanvasItem, name: String, center: Vector2, scale: float = 1.0, modulate: Color = Color.WHITE) -> void:
+	var region: Rect2 = BUILDING_REGIONS.get(name, BUILDING_REGIONS["shanghai_lane_house"])
+	draw_building_sprite(canvas, name, center - region.size * scale * 0.5, scale, modulate)
 
 
 static func draw_icon(canvas: CanvasItem, name: String, top_left: Vector2, scale: float = 1.0, modulate: Color = Color.WHITE) -> void:

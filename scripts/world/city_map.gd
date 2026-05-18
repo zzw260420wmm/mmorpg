@@ -619,18 +619,39 @@ func _draw_building(data: Dictionary) -> void:
 	var roof: Color = data["roof"]
 	var light: Color = data["light"]
 	var id: String = data["id"]
+	var ink := Color(0.12, 0.10, 0.09, 0.62)
 
-	draw_rect(Rect2(rect.position + Vector2(4, 4), rect.size), Color(0.04, 0.04, 0.05, 0.26))
-	draw_rect(rect, body)
-	draw_rect(Rect2(rect.position, Vector2(rect.size.x, TILE_SIZE)), roof)
-	_draw_building_grid(rect)
-	draw_rect(rect, Color(0.06, 0.05, 0.05, 0.24), false, 2.0)
+	_draw_cartoon_shadow(rect)
+	_draw_cartoon_rect(rect, body, ink, 7.0)
+	_draw_cartoon_rect(Rect2(rect.position + Vector2(4, 4), Vector2(rect.size.x - 8, 18)), roof, ink, 5.0)
+	draw_line(rect.position + Vector2(8, 25), rect.position + Vector2(rect.size.x - 8, 23), Color(1.0, 0.92, 0.72, 0.12), 2.0)
+	draw_line(rect.position + Vector2(9, rect.size.y - 8), rect.position + Vector2(rect.size.x - 9, rect.size.y - 10), Color(0.05, 0.04, 0.04, 0.13), 2.0)
 
 	_draw_grid_building_details(id, rect, light)
 
 
-func _draw_building_grid(rect: Rect2) -> void:
-	ArtAssetsScript.draw_pixel_grid(self, rect, TILE_SIZE, Color(0.05, 0.04, 0.04, 0.16))
+func _draw_cartoon_shadow(rect: Rect2) -> void:
+	var shadow := Rect2(rect.position + Vector2(6, 8), rect.size)
+	_draw_cartoon_rect(shadow, Color(0.04, 0.04, 0.05, 0.24), Color(0, 0, 0, 0), 8.0, false)
+
+
+func _draw_cartoon_rect(rect: Rect2, fill: Color, stroke: Color, radius: float, draw_stroke: bool = true) -> void:
+	var r: float = min(radius, min(rect.size.x, rect.size.y) * 0.5)
+	draw_rect(Rect2(rect.position + Vector2(r, 0), Vector2(rect.size.x - r * 2.0, rect.size.y)), fill)
+	draw_rect(Rect2(rect.position + Vector2(0, r), Vector2(rect.size.x, rect.size.y - r * 2.0)), fill)
+	draw_circle(rect.position + Vector2(r, r), r, fill)
+	draw_circle(rect.position + Vector2(rect.size.x - r, r), r, fill)
+	draw_circle(rect.position + Vector2(r, rect.size.y - r), r, fill)
+	draw_circle(rect.position + Vector2(rect.size.x - r, rect.size.y - r), r, fill)
+	if draw_stroke:
+		draw_line(rect.position + Vector2(r, 0), rect.position + Vector2(rect.size.x - r, 0), stroke, 2.0)
+		draw_line(rect.position + Vector2(r, rect.size.y), rect.position + Vector2(rect.size.x - r, rect.size.y), stroke, 2.0)
+		draw_line(rect.position + Vector2(0, r), rect.position + Vector2(0, rect.size.y - r), stroke, 2.0)
+		draw_line(rect.position + Vector2(rect.size.x, r), rect.position + Vector2(rect.size.x, rect.size.y - r), stroke, 2.0)
+		draw_arc(rect.position + Vector2(r, r), r, PI, PI * 1.5, 8, stroke, 2.0)
+		draw_arc(rect.position + Vector2(rect.size.x - r, r), r, PI * 1.5, TAU, 8, stroke, 2.0)
+		draw_arc(rect.position + Vector2(rect.size.x - r, rect.size.y - r), r, 0.0, PI * 0.5, 8, stroke, 2.0)
+		draw_arc(rect.position + Vector2(r, rect.size.y - r), r, PI * 0.5, PI, 8, stroke, 2.0)
 
 
 func _draw_grid_building_details(id: String, rect: Rect2, light: Color) -> void:
@@ -657,14 +678,18 @@ func _draw_grid_building_details(id: String, rect: Rect2, light: Color) -> void:
 
 func _draw_grid_window(rect: Rect2, col: int, row: int, light: Color) -> void:
 	var pos := rect.position + Vector2(col * TILE_SIZE + 3, row * TILE_SIZE + 3)
-	draw_rect(Rect2(pos, Vector2(10, 8)), light)
-	draw_rect(Rect2(pos + Vector2(5, 0), Vector2(1, 8)), Color(0.10, 0.10, 0.12, 0.28))
+	var window_rect := Rect2(pos, Vector2(10, 8))
+	_draw_cartoon_rect(window_rect, light, Color(0.10, 0.10, 0.12, 0.34), 2.5)
+	draw_line(pos + Vector2(5, 1), pos + Vector2(5, 7), Color(0.10, 0.10, 0.12, 0.24), 1.0)
+	draw_line(pos + Vector2(1, 4), pos + Vector2(9, 4), Color(1.0, 0.95, 0.70, 0.12), 1.0)
 
 
 func _draw_grid_door(rect: Rect2, col: int, row: int, light: Color) -> void:
 	var pos := rect.position + Vector2(col * TILE_SIZE, row * TILE_SIZE)
-	draw_rect(Rect2(pos, Vector2(TILE_SIZE * 2, TILE_SIZE * 2)), Color("#2f2d2b"))
-	draw_rect(Rect2(pos + Vector2(4, 5), Vector2(TILE_SIZE * 2 - 8, 7)), light)
+	var door_rect := Rect2(pos + Vector2(1, 1), Vector2(TILE_SIZE * 2 - 2, TILE_SIZE * 2 - 2))
+	_draw_cartoon_rect(door_rect, Color("#2f2d2b"), Color(0.12, 0.10, 0.09, 0.62), 5.0)
+	_draw_cartoon_rect(Rect2(pos + Vector2(5, 6), Vector2(TILE_SIZE * 2 - 10, 8)), light, Color(0.10, 0.10, 0.12, 0.26), 3.0)
+	draw_circle(pos + Vector2(TILE_SIZE * 2 - 7, TILE_SIZE + 5), 1.4, Color("#d8b46f"))
 
 
 func _draw_grid_sign(id: String, rect: Rect2) -> void:
@@ -675,20 +700,23 @@ func _draw_grid_sign(id: String, rect: Rect2) -> void:
 		sign_color = Color("#ffc4d6")
 	elif id in ["community_clinic"]:
 		sign_color = Color("#d8fff0")
-	draw_rect(Rect2(rect.position + Vector2(TILE_SIZE, 4), Vector2(min(rect.size.x - TILE_SIZE * 2, TILE_SIZE * 4), 8)), sign_color)
+	var sign_rect := Rect2(rect.position + Vector2(TILE_SIZE, 5), Vector2(min(rect.size.x - TILE_SIZE * 2, TILE_SIZE * 4), 9))
+	_draw_cartoon_rect(sign_rect, sign_color, Color(0.12, 0.10, 0.09, 0.42), 3.0)
+	draw_line(sign_rect.position + Vector2(5, 4), sign_rect.position + Vector2(sign_rect.size.x - 5, 4), Color(0.10, 0.09, 0.08, 0.24), 1.0)
 
 
 func _draw_grid_awning(rect: Rect2, a: Color, b: Color) -> void:
 	for col in range(1, int(rect.size.x / TILE_SIZE) - 1):
-		draw_rect(Rect2(rect.position + Vector2(col * TILE_SIZE, TILE_SIZE), Vector2(TILE_SIZE, 8)), a if col % 2 == 0 else b)
+		var awning_rect := Rect2(rect.position + Vector2(col * TILE_SIZE, TILE_SIZE + 2), Vector2(TILE_SIZE, 9))
+		_draw_cartoon_rect(awning_rect, a if col % 2 == 0 else b, Color(0.12, 0.10, 0.09, 0.32), 2.0)
 
 
 func _draw_grid_scooters(rect: Rect2) -> void:
 	for i in range(3):
 		var pos := rect.position + Vector2(8 + i * 28, rect.size.y + 2)
-		draw_rect(Rect2(pos, Vector2(18, 6)), Color("#f1c232"))
-		draw_rect(Rect2(pos + Vector2(4, 6), Vector2(4, 4)), Color("#26313d"))
-		draw_rect(Rect2(pos + Vector2(14, 6), Vector2(4, 4)), Color("#26313d"))
+		_draw_cartoon_rect(Rect2(pos, Vector2(18, 6)), Color("#f1c232"), Color(0.12, 0.10, 0.09, 0.38), 3.0)
+		draw_circle(pos + Vector2(5, 7), 2.6, Color("#26313d"))
+		draw_circle(pos + Vector2(15, 7), 2.6, Color("#26313d"))
 
 
 func _draw_puddles_and_lights() -> void:

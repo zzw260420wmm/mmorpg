@@ -211,6 +211,7 @@ function Draw-Character {
 		$Bitmap,
 		[int]$Col,
 		[int]$Row,
+		[string]$Kind,
 		[string]$Shirt,
 		[string]$Hair,
 		[string]$Skin,
@@ -220,6 +221,9 @@ function Draw-Character {
 	)
 	$x = $Col * 32
 	$y = $Row * 32
+	$Ink = "#2a2524"
+	$Shoe = "#26313d"
+	$Pants = "#46515a"
 	$armLift = 0
 	$leftFootY = 24
 	$rightFootY = 24
@@ -229,9 +233,15 @@ function Draw-Character {
 		$rightFootY = 25
 	}
 
-	Fill-Rect $Bitmap ($x + 10) ($y + $leftFootY) 4 4 "#26313d"
-	Fill-Rect $Bitmap ($x + 18) ($y + $rightFootY) 4 4 "#26313d"
-	Fill-Rect $Bitmap ($x + 10) ($y + 13) 12 13 $Shirt
+	# Compact ink silhouette keeps the tiny 32px sprites readable over busy city tiles.
+	Fill-Rect $Bitmap ($x + 9) ($y + 12) 14 15 $Ink
+	Fill-Rect $Bitmap ($x + 8) ($y + 8) 16 10 $Ink
+	Fill-Rect $Bitmap ($x + 10) ($y + $leftFootY) 4 4 $Shoe
+	Fill-Rect $Bitmap ($x + 18) ($y + $rightFootY) 4 4 $Shoe
+	Fill-Rect $Bitmap ($x + 10) ($y + 20) 5 6 $Pants
+	Fill-Rect $Bitmap ($x + 17) ($y + 20) 5 6 $Pants
+	Fill-Rect $Bitmap ($x + 10) ($y + 13) 12 10 $Shirt
+	Fill-Rect $Bitmap ($x + 11) ($y + 14) 10 1 "#00000033"
 
 	switch ($Direction) {
 		"up" {
@@ -261,8 +271,9 @@ function Draw-Character {
 			Fill-Rect $Bitmap ($x + 9) ($y + 9) 14 8 $Skin
 			Fill-Rect $Bitmap ($x + 10) ($y + 4) 12 7 $Hair
 			Fill-Rect $Bitmap ($x + 9) ($y + 5) 3 5 $Hair
-			Fill-Rect $Bitmap ($x + 11) ($y + 12) 2 1 "#1b1720"
-			Fill-Rect $Bitmap ($x + 19) ($y + 12) 2 1 "#1b1720"
+			Fill-Rect $Bitmap ($x + 12) ($y + 12) 1 1 "#1b1720"
+			Fill-Rect $Bitmap ($x + 19) ($y + 12) 1 1 "#1b1720"
+			Fill-Rect $Bitmap ($x + 14) ($y + 15) 4 1 "#c48868"
 			Fill-Rect $Bitmap ($x + 7) ($y + 15 + $armLift) 4 9 $Shirt
 			Fill-Rect $Bitmap ($x + 21) ($y + 15 - $armLift) 4 9 $Shirt
 		}
@@ -275,6 +286,46 @@ function Draw-Character {
 		} else {
 			Fill-Rect $Bitmap ($x + 22) ($y + 17) 5 8 $Accent
 			Stroke-Rect $Bitmap ($x + 22) ($y + 17) 5 8 "#4a3d32"
+		}
+	}
+
+	switch ($Kind) {
+		"player_grad" {
+			Fill-Rect $Bitmap ($x + 11) ($y + 13) 10 3 "#6f8aa2"
+			Fill-Rect $Bitmap ($x + 20) ($y + 18) 3 7 "#8f7654"
+		}
+		"landlord" {
+			Fill-Rect $Bitmap ($x + 12) ($y + 14) 8 2 "#bda37c"
+			Fill-Rect $Bitmap ($x + 22) ($y + 13) 3 8 "#6a5948"
+		}
+		"shopkeeper" {
+			Fill-Rect $Bitmap ($x + 9) ($y + 15) 14 3 "#d8c886"
+			Fill-Rect $Bitmap ($x + 18) ($y + 18) 4 4 "#f3dca2"
+		}
+		"drifter_girl" {
+			Fill-Rect $Bitmap ($x + 6) ($y + 17) 5 8 "#d8b46f"
+			Stroke-Rect $Bitmap ($x + 6) ($y + 17) 5 8 "#5c4d43"
+			Fill-Rect $Bitmap ($x + 11) ($y + 5) 10 2 "#3b2430"
+		}
+		"delivery_rider" {
+			Fill-Rect $Bitmap ($x + 9) ($y + 4) 14 4 "#e5bd3f"
+			Stroke-Rect $Bitmap ($x + 9) ($y + 4) 14 4 "#7a5d23"
+			Fill-Rect $Bitmap ($x + 22) ($y + 14) 6 10 "#e5bd3f"
+			Stroke-Rect $Bitmap ($x + 22) ($y + 14) 6 10 "#7a5d23"
+		}
+		"office_worker" {
+			Fill-Rect $Bitmap ($x + 14) ($y + 13) 4 8 "#d6d0bd"
+			Fill-Rect $Bitmap ($x + 15) ($y + 14) 2 6 "#5b6f83"
+			Fill-Rect $Bitmap ($x + 5) ($y + 18) 5 7 "#4b3d34"
+		}
+		"streamer" {
+			Fill-Rect $Bitmap ($x + 11) ($y + 5) 10 2 "#7e3f56"
+			Fill-Rect $Bitmap ($x + 11) ($y + 13) 10 2 "#ffc4d6"
+			Fill-Rect $Bitmap ($x + 22) ($y + 16) 3 6 "#ffe0e8"
+		}
+		"metro_commuter" {
+			Fill-Rect $Bitmap ($x + 20) ($y + 17) 5 8 "#2f5d45"
+			Stroke-Rect $Bitmap ($x + 20) ($y + 17) 5 8 "#1f3f32"
 		}
 	}
 }
@@ -334,8 +385,8 @@ $characters = @(
 	@("player_grad", "#4f6f88", "#2b2527", "#d7a778", ""),
 	@("landlord", "#8d7560", "#3a3029", "#c49167", "#b68b55"),
 	@("shopkeeper", "#3f806f", "#25262b", "#d6a373", ""),
-	@("drifter_girl", "#c55b70", "#241b22", "#d8a17b", "#e4c06d"),
-	@("delivery_rider", "#e5bd3f", "#26313d", "#d6a373", "#e5bd3f"),
+	@("drifter_girl", "#c55b70", "#241b22", "#d8a17b", "#d8b46f"),
+	@("delivery_rider", "#d9b63e", "#26313d", "#d6a373", "#e5bd3f"),
 	@("office_worker", "#5d6870", "#24292f", "#d6a373", "#6f8393"),
 	@("streamer", "#c26c74", "#2b2527", "#d8a17b", "#ffc4d6"),
 	@("metro_commuter", "#6b7280", "#3b302b", "#c49167", "#2f5d45")
@@ -348,8 +399,8 @@ for ($i = 0; $i -lt $characters.Count; $i++) {
 		$direction = $characterDirections[$directionIndex]
 		$idleRow = $directionIndex * 2
 		$walkRow = $idleRow + 1
-		Draw-Character $characterAtlas $i $idleRow $characters[$i][1] $characters[$i][2] $characters[$i][3] $characters[$i][4] $direction $false
-		Draw-Character $characterAtlas $i $walkRow $characters[$i][1] $characters[$i][2] $characters[$i][3] $characters[$i][4] $direction $true
+		Draw-Character $characterAtlas $i $idleRow $characters[$i][0] $characters[$i][1] $characters[$i][2] $characters[$i][3] $characters[$i][4] $direction $false
+		Draw-Character $characterAtlas $i $walkRow $characters[$i][0] $characters[$i][1] $characters[$i][2] $characters[$i][3] $characters[$i][4] $direction $true
 		$frames["${direction}_idle"] = @{ x = $i * 32; y = $idleRow * 32; w = 32; h = 32 }
 		$frames["${direction}_walk"] = @{ x = $i * 32; y = $walkRow * 32; w = 32; h = 32 }
 	}

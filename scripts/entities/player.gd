@@ -92,7 +92,7 @@ func _draw() -> void:
 	var shadow_color := Color(0.05, 0.06, 0.07, 0.32)
 	_draw_ellipse(Rect2(Vector2(-7, 7), Vector2(14, 5)), shadow_color)
 
-	ArtAssetsScript.draw_character_centered(self, "player_grad", Vector2(0, -1 + bob), stepping, 0.72, Color.WHITE, facing)
+	ArtAssetsScript.draw_character_centered(self, "player_grad", Vector2(0, -5 + bob), stepping, 0.42, Color.WHITE, facing)
 
 
 func _snap_facing(direction: Vector2) -> Vector2:

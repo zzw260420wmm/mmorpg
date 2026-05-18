@@ -109,7 +109,7 @@ func _draw() -> void:
 		bob = int(sin(walk_clock * 14.0))
 
 	_draw_ellipse(Rect2(Vector2(-7, 7), Vector2(14, 5)), Color(0.04, 0.04, 0.05, 0.28))
-	ArtAssetsScript.draw_character_centered(self, _get_character_asset_name(), Vector2(0, -1 + bob), stepping, 0.72, Color.WHITE, facing)
+	ArtAssetsScript.draw_character_centered(self, _get_character_asset_name(), Vector2(0, -5 + bob), stepping, 0.42, Color.WHITE, facing)
 
 	if role == "shopkeeper":
 		draw_rect(Rect2(-6, 1 + bob, 12, 2), Color("#f2d06b"))

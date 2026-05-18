@@ -1,0 +1,117 @@
+﻿{
+    "style":  "non-pixel 2D hand-drawn cartoon buildings, clean line art, simple cel shading, transparent background",
+    "cell_size":  {
+                      "h":  128,
+                      "w":  192
+                  },
+    "buildings":  [
+                      {
+                          "id":  "shanghai_lane_house",
+                          "city":  "Shanghai",
+                          "x":  0,
+                          "y":  0,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "old lane rental house with laundry wires"
+                      },
+                      {
+                          "id":  "shanghai_convenience_store",
+                          "city":  "Shanghai",
+                          "x":  192,
+                          "y":  0,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "chain convenience store in humid night street"
+                      },
+                      {
+                          "id":  "shanghai_office_tower",
+                          "city":  "Shanghai",
+                          "x":  384,
+                          "y":  0,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "glass office block, restrained Lujiazui pressure"
+                      },
+                      {
+                          "id":  "beijing_hutong_courtyard",
+                          "city":  "Beijing",
+                          "x":  576,
+                          "y":  0,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "hutong courtyard facade with gray roof and red door"
+                      },
+                      {
+                          "id":  "guangzhou_qilou_shop",
+                          "city":  "Guangzhou",
+                          "x":  0,
+                          "y":  128,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "arcade qilou shop house with columns"
+                      },
+                      {
+                          "id":  "shenzhen_tech_park",
+                          "city":  "Shenzhen",
+                          "x":  192,
+                          "y":  128,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "startup tech park glass block"
+                      },
+                      {
+                          "id":  "chengdu_noodle_shop",
+                          "city":  "Chengdu",
+                          "x":  384,
+                          "y":  128,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "warm noodle shop, low pressure but crowded"
+                      },
+                      {
+                          "id":  "hangzhou_waterside_house",
+                          "city":  "Hangzhou",
+                          "x":  576,
+                          "y":  128,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "waterside white-wall dark-roof building"
+                      },
+                      {
+                          "id":  "chongqing_slope_apartment",
+                          "city":  "Chongqing",
+                          "x":  0,
+                          "y":  256,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "slope-side apartment with stepped road"
+                      },
+                      {
+                          "id":  "wuhan_riverside_market",
+                          "city":  "Wuhan",
+                          "x":  192,
+                          "y":  256,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "riverside market near humid embankment"
+                      },
+                      {
+                          "id":  "nanjing_plane_tree_block",
+                          "city":  "Nanjing",
+                          "x":  384,
+                          "y":  256,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "older block shaded by plane trees"
+                      },
+                      {
+                          "id":  "shanghai_media_company",
+                          "city":  "Shanghai",
+                          "x":  576,
+                          "y":  256,
+                          "w":  192,
+                          "h":  128,
+                          "note":  "media company with restrained warm pink light"
+                      }
+                  ]
+}
