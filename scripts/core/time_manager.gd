@@ -22,14 +22,14 @@ const WEATHER_LABELS := {
 
 var month := 6
 var day := 1
-var money := 2600
+var money := 4200
 var max_energy := 100
-var energy := 78
+var energy := 90
 var max_stress := 100
-var stress := 22
-var rent_amount := 1200
-var rent_cycle_days := 7
-var next_rent_day := 7
+var stress := 10
+var rent_amount := 900
+var rent_cycle_days := 10
+var next_rent_day := 10
 var housing_id := "urban_village"
 var housing_label := "城中村合租"
 var commute_fare := 6
@@ -290,6 +290,6 @@ func _advance_weather() -> void:
 func _apply_daily_rent_pressure() -> void:
 	var overdue_days: int = get_rent_overdue_days()
 	if overdue_days > 0:
-		stress = clampi(stress + min(16, 5 + overdue_days * 3), 0, max_stress)
+		stress = clampi(stress + min(8, 2 + overdue_days * 2), 0, max_stress)
 	elif get_rent_due_in_days() == 0:
-		stress = clampi(stress + 6, 0, max_stress)
+		stress = clampi(stress + 2, 0, max_stress)

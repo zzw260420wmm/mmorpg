@@ -16,6 +16,7 @@ const STREET_DELIVERY_STATION := Vector2(2976, 1408)
 const STREET_DELIVERY_PICKUP := Vector2(858, 1018)
 const STREET_DELIVERY_DROPOFF := Vector2(4700, 642)
 const STREET_MEDIA := Vector2(2784, 386)
+const STREET_INTERNET_CAFE := Vector2(1680, 1024)
 const STREET_MARKET := Vector2(670, 2494)
 const STREET_CLINIC := Vector2(1438, 2366)
 const STREET_TALENT_APARTMENT := Vector2(4700, 642)
@@ -64,13 +65,18 @@ func set_weather(weather_key: String) -> void:
 
 func _draw() -> void:
 	if _has_reference_road_tile_map():
+		_draw_handdrawn_ground_overlays()
+		_draw_showcase_buildings()
 		_draw_reusable_street_props()
 		_draw_metro_glow()
 		return
 	_draw_shanghai_geography()
+	_draw_handdrawn_ground_overlays()
 	_draw_puddles_and_lights()
 	for data in building_rects:
 		_draw_building(data)
+	_draw_shanghai_life_markers()
+	_draw_showcase_buildings()
 	_draw_reusable_street_props()
 	_draw_metro_glow()
 
@@ -170,6 +176,7 @@ func _create_buildings() -> void:
 	_add_building("office_shop", _grid_rect(60, 21, 2, 1), Color("#806b52"), Color("#5b4638"), Color("#f0c77b"))
 	_add_building("delivery_station", _grid_rect(45, 21, 2, 1), Color("#6f7653"), Color("#4d5738"), Color("#f3cf6b"))
 	_add_building("media_company", _grid_rect(42, 4, 2, 2), Color("#7b647f"), Color("#58445f"), Color("#ffc4d6"))
+	_add_building("internet_cafe", _grid_rect(26, 15, 2, 1), Color("#38485a"), Color("#202838"), Color("#6fd2ff"))
 	_add_building("wet_market", _grid_rect(9, 38, 2, 1), Color("#6f7653"), Color("#4d5738"), Color("#f0c77b"))
 	_add_building("community_clinic", _grid_rect(21, 36, 2, 1), Color("#6d8d83"), Color("#3d635f"), Color("#d8fff0"))
 	_add_building("talent_apartment", _grid_rect(72, 8, 2, 2), Color("#7d8588"), Color("#56636c"), Color("#ffe2a1"))
@@ -289,6 +296,16 @@ func _create_interactables() -> void:
 		"border_color": Color("#c4d8a8"),
 	})
 	_add_interactable({
+		"id": "shanghai_city_task",
+		"name": "上海城市委托栏",
+		"kind": "city_task",
+		"prompt": "按 E 接城市委托",
+		"position": STREET_PEOPLE_SQUARE + Vector2(118, 42),
+		"size": Vector2(112, 34),
+		"fill_color": Color(0.56, 0.72, 0.52, 0.20),
+		"border_color": Color("#c4d8a8"),
+	})
+	_add_interactable({
 		"id": "bund_prom",
 		"name": "外滩江边",
 		"kind": "dialogue",
@@ -358,6 +375,19 @@ func _create_interactables() -> void:
 		},
 		"fill_color": Color(0.48, 0.68, 0.88, 0.20),
 		"border_color": Color("#a9d7ff"),
+	})
+	_add_interactable({
+		"id": "shanghai_mansion_gate",
+		"name": "海上公馆",
+		"kind": "enter_shanghai_mansion",
+		"prompt": "按 E 进公馆",
+		"position": STREET_REPUBLIC_SHANGHAI + Vector2(-180, 92),
+		"size": Vector2(92, 34),
+		"lines": {
+			"default": ["一栋老公馆藏在梧桐影子里，门牌擦得很亮。"],
+		},
+		"fill_color": Color(0.72, 0.58, 0.38, 0.20),
+		"border_color": Color("#e8c879"),
 	})
 	_add_interactable({
 		"id": "wet_market",
@@ -510,6 +540,21 @@ func _create_interactables() -> void:
 		"fill_color": Color(1.0, 0.58, 0.72, 0.18),
 		"border_color": Color("#ffc4d6"),
 	})
+	_add_interactable({
+		"id": "internet_cafe_gate",
+		"name": "旧网吧",
+		"kind": "internet_cafe",
+		"prompt": "按 E 进网吧",
+		"position": STREET_INTERNET_CAFE,
+		"size": Vector2(72, 28),
+		"lines": {
+			"default": ["楼梯口贴着褪色的网吧招牌，里面透出蓝色的屏幕光。"],
+			"evening": ["晚饭后，附近年轻人和下班的人把角落坐满。"],
+			"late_night": ["包夜价目表还亮着，像城市给失眠的人开的临时房间。"],
+		},
+		"fill_color": Color(0.20, 0.42, 0.95, 0.18),
+		"border_color": Color("#6fd2ff"),
+	})
 
 func _add_interactable(data: Dictionary) -> void:
 	var interactable: WorldInteractable = WorldInteractableScript.new()
@@ -598,6 +643,70 @@ func _draw_real_map_landmarks() -> void:
 	draw_rect(Rect2(Vector2(286, 608), Vector2(68, 18)), Color("#5b4638"))
 
 
+func _draw_handdrawn_ground_overlays() -> void:
+	_draw_ground_patch(Rect2(Vector2(192, 256), Vector2(384, 256)), "warm_sidewalk")
+	_draw_ground_patch(Rect2(Vector2(192, 320), Vector2(384, 64)), "sidewalk_cracked")
+	_draw_ground_patch(Rect2(Vector2(320, 384), Vector2(128, 64)), "happy_grass")
+	_draw_ground_patch(Rect2(Vector2(384, 384), Vector2(128, 64)), "grass_flowers")
+	_draw_ground_patch(Rect2(Vector2(256, 448), Vector2(64, 64)), "plane_tree")
+	_draw_ground_patch(Rect2(Vector2(512, 384), Vector2(64, 64)), "small_tree")
+	_draw_ground_patch(Rect2(Vector2(768, 960), Vector2(256, 128)), "warm_sidewalk")
+	_draw_ground_patch(Rect2(Vector2(768, 1024), Vector2(256, 64)), "crosswalk")
+	_draw_ground_patch(Rect2(Vector2(1152, 320), Vector2(256, 128)), "warm_sidewalk")
+	_draw_ground_patch(Rect2(Vector2(1216, 384), Vector2(64, 64)), "sidewalk_tree_well")
+	_draw_ground_patch(Rect2(Vector2(1280, 384), Vector2(64, 64)), "flower_box")
+	_draw_ground_patch(Rect2(Vector2(2048, 1152), Vector2(256, 128)), "soft_asphalt")
+	_draw_ground_patch(Rect2(Vector2(2112, 1152), Vector2(128, 64)), "crosswalk")
+	_draw_ground_patch(Rect2(Vector2(2816, 1344), Vector2(384, 192)), "wet_asphalt")
+	_draw_ground_patch(Rect2(Vector2(2880, 1408), Vector2(256, 64)), "bike_lane")
+	_draw_ground_patch(Rect2(Vector2(2688, 320), Vector2(256, 128)), "warm_sidewalk")
+	_draw_ground_patch(Rect2(Vector2(2752, 384), Vector2(64, 64)), "rain_puddle")
+	_draw_ground_patch(Rect2(Vector2(3456, 576), Vector2(256, 128)), "warm_sidewalk")
+	_draw_ground_patch(Rect2(Vector2(3904, 1344), Vector2(192, 128)), "sidewalk_cracked")
+	_draw_ground_patch(Rect2(Vector2(5120, 896), Vector2(192, 128)), "fallen_leaves")
+	_draw_ground_patch(Rect2(Vector2(5504, 832), Vector2(192, 128)), "warm_sidewalk")
+	_draw_ground_patch(Rect2(Vector2(5760, 1664), Vector2(320, 160)), "soft_asphalt")
+	_draw_ground_patch(Rect2(Vector2(5824, 1728), Vector2(192, 64)), "crosswalk")
+
+
+func _draw_ground_patch(rect: Rect2, tile_name: String) -> void:
+	var size := float(ArtAssetsScript.HANDDRAWN_GROUND_SIZE)
+	var columns := int(ceil(rect.size.x / size))
+	var rows := int(ceil(rect.size.y / size))
+	for row in range(rows):
+		for column in range(columns):
+			var tile_pos := rect.position + Vector2(column * size, row * size)
+			ArtAssetsScript.draw_handdrawn_ground(self, tile_name, tile_pos)
+
+
+func _draw_shanghai_life_markers() -> void:
+	_draw_life_marker(STREET_HOME, "住", Color("#e8c879"), Color("#4b3724"))
+	_draw_life_marker(STREET_OFFICE, "工", Color("#a9d7ff"), Color("#243849"))
+	_draw_life_marker(STREET_PEOPLE_SQUARE + Vector2(118, 42), "委", Color("#c4d8a8"), Color("#33452d"))
+
+
+func _draw_life_marker(center: Vector2, glyph: String, accent: Color, body: Color) -> void:
+	var base := Rect2(center - Vector2(26, 23), Vector2(52, 46))
+	draw_rect(base.grow(4), Color(0.06, 0.05, 0.04, 0.22))
+	draw_rect(base, body)
+	draw_rect(base, accent, false, 3.0)
+	_draw_marker_glyph(center + Vector2(-8, -11), glyph, accent)
+
+
+func _draw_marker_glyph(pos: Vector2, glyph: String, color: Color) -> void:
+	if glyph == "住":
+		draw_rect(Rect2(pos + Vector2(0, 10), Vector2(16, 13)), color)
+		draw_polygon(PackedVector2Array([pos + Vector2(-2, 10), pos + Vector2(8, 0), pos + Vector2(18, 10)]), PackedColorArray([color]))
+	elif glyph == "工":
+		draw_rect(Rect2(pos + Vector2(0, 1), Vector2(16, 4)), color)
+		draw_rect(Rect2(pos + Vector2(6, 5), Vector2(4, 16)), color)
+		draw_rect(Rect2(pos + Vector2(0, 21), Vector2(16, 4)), color)
+	else:
+		draw_rect(Rect2(pos + Vector2(1, 0), Vector2(15, 21)), color)
+		draw_rect(Rect2(pos + Vector2(5, 5), Vector2(7, 2)), Color("#33452d"))
+		draw_rect(Rect2(pos + Vector2(5, 11), Vector2(7, 2)), Color("#33452d"))
+
+
 func _draw_reusable_street_props() -> void:
 	ArtAssetsScript.draw_prop(self, "laundry_rack", Vector2(312, 388), 1.0)
 	ArtAssetsScript.draw_prop(self, "ac_unit", Vector2(270, 284), 0.9)
@@ -620,6 +729,10 @@ func _draw_building(data: Dictionary) -> void:
 	var light: Color = data["light"]
 	var id: String = data["id"]
 	var ink := Color(0.12, 0.10, 0.09, 0.62)
+	var sprite_name := _building_sprite_for_id(id)
+	if not sprite_name.is_empty():
+		_draw_atlas_building(rect, sprite_name)
+		return
 
 	_draw_cartoon_shadow(rect)
 	_draw_cartoon_rect(rect, body, ink, 7.0)
@@ -628,6 +741,59 @@ func _draw_building(data: Dictionary) -> void:
 	draw_line(rect.position + Vector2(9, rect.size.y - 8), rect.position + Vector2(rect.size.x - 9, rect.size.y - 10), Color(0.05, 0.04, 0.04, 0.13), 2.0)
 
 	_draw_grid_building_details(id, rect, light)
+
+
+func _building_sprite_for_id(id: String) -> String:
+	match id:
+		"rental":
+			return "shanghai_lane_house"
+		"store":
+			return "shanghai_convenience_store"
+		"restaurant":
+			return "chengdu_noodle_shop"
+		"metro":
+			return "shanghai_office_tower"
+		"office":
+			return "shanghai_office_tower"
+		"office_shop":
+			return "guangzhou_qilou_shop"
+		"delivery_station":
+			return "shenzhen_tech_park"
+		"media_company":
+			return "shanghai_media_company"
+		"internet_cafe":
+			return "guangzhou_qilou_shop"
+		"wet_market":
+			return "wuhan_riverside_market"
+		"community_clinic":
+			return "nanjing_plane_tree_block"
+		"talent_apartment":
+			return "chongqing_slope_apartment"
+		"rental_agency":
+			return "guangzhou_qilou_shop"
+	return ""
+
+
+func _draw_atlas_building(rect: Rect2, sprite_name: String) -> void:
+	var base_scale: float = min(rect.size.x / float(ArtAssetsScript.BUILDING_SPRITE_SIZE.x), rect.size.y / float(ArtAssetsScript.BUILDING_SPRITE_SIZE.y))
+	var scale: float = base_scale
+	var sprite_size: Vector2 = Vector2(ArtAssetsScript.BUILDING_SPRITE_SIZE) * scale
+	var top_left: Vector2 = Vector2(rect.position.x + rect.size.x * 0.5 - sprite_size.x * 0.5, rect.end.y - sprite_size.y)
+	_draw_cartoon_shadow(Rect2(top_left + Vector2(8, 12), sprite_size))
+	ArtAssetsScript.draw_building_sprite(self, sprite_name, top_left, scale)
+
+
+func _draw_showcase_buildings() -> void:
+	var entries: Array[Dictionary] = [
+		{"name": "beijing_hutong_courtyard", "pos": Vector2(5680, 1888)},
+		{"name": "guangzhou_qilou_shop", "pos": Vector2(5888, 1888)},
+		{"name": "hangzhou_waterside_house", "pos": Vector2(6096, 1888)},
+		{"name": "nanjing_plane_tree_block", "pos": Vector2(5680, 2048)},
+	]
+	for entry in entries:
+		var pos: Vector2 = entry["pos"]
+		_draw_ground_patch(Rect2(pos + Vector2(0, 64), Vector2(128, 64)), "warm_sidewalk")
+		ArtAssetsScript.draw_building_sprite(self, str(entry["name"]), pos, 0.66)
 
 
 func _draw_cartoon_shadow(rect: Rect2) -> void:

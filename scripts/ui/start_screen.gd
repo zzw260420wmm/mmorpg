@@ -55,13 +55,13 @@ func _build_ui() -> void:
 	box.add_theme_constant_override("separation", 10)
 	margin.add_child(box)
 
-	var eyebrow := _make_label("上海都市生活演示版", 12, Color("#f1d58a"))
+	var eyebrow := _make_label("五城发展生活模拟 DEMO", 12, Color("#f1d58a"))
 	box.add_child(eyebrow)
 
 	var title := _make_label("新路故城", 26, Color("#fff1cf"))
 	box.add_child(title)
 
-	var subtitle := _make_label("在一个潮湿的上海街区里，安排通勤、工作、房租和休息。", 13, Color("#d5c7b3"))
+	var subtitle := _make_label("选择一座城市落脚，从住处、工作和城市委托开始，把人生曲线一点点推上去。", 13, Color("#d5c7b3"))
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(subtitle)
 
@@ -73,7 +73,7 @@ func _build_ui() -> void:
 	box.add_child(bullet_3)
 
 	start_button = Button.new()
-	start_button.text = "进入上海"
+	start_button.text = "进入游戏"
 	start_button.custom_minimum_size = Vector2(0, 42)
 	start_button.focus_mode = Control.FOCUS_NONE
 	start_button.pressed.connect(_start_game)

@@ -45,6 +45,7 @@ var character_tab_button: Button
 var contacts_tab_button: Button
 var inventory_tab_button: Button
 var city_tab_button: Button
+var assets_tab_button: Button
 var tasks_tab_button: Button
 var character_view: VBoxContainer
 var character_summary_label: Label
@@ -57,6 +58,8 @@ var inventory_empty_label: Label
 var inventory_list: VBoxContainer
 var city_view: VBoxContainer
 var city_summary_label: Label
+var assets_view: VBoxContainer
+var assets_summary_label: Label
 var tasks_view: VBoxContainer
 var tasks_summary_label: Label
 
@@ -183,6 +186,16 @@ func show_shop(title: String, items: Array[Dictionary]) -> void:
 	var lines := PackedStringArray()
 	for i in range(current_shop_items.size()):
 		var item: Dictionary = current_shop_items[i]
+		if item.has("start_city_id"):
+			lines.append("%d  %s" % [i + 1, str(item.get("name", "城市"))])
+			lines.append("   %s" % str(item.get("summary", "选择这里开始发展。")))
+			lines.append("   房租 %d / 周期 %d 天｜工作：%s｜解锁：%s" % [
+				int(item.get("rent", 0)),
+				int(item.get("rent_cycle", 0)),
+				str(item.get("work", "本地工作")),
+				str(item.get("unlock", "城市声望奖励")),
+			])
+			continue
 		if item.has("travel_city_id"):
 			lines.append("%d  %s  立即出发" % [i + 1, str(item.get("name", "目的地"))])
 		elif item.has("contract_id"):
@@ -344,7 +357,7 @@ func _build_goals_panel(root: Control) -> void:
 	goals_panel.offset_left = -224
 	goals_panel.offset_right = -16
 	goals_panel.offset_top = 208
-	goals_panel.offset_bottom = 320
+	goals_panel.offset_bottom = 388
 	root.add_child(goals_panel)
 
 	var goals_margin := MarginContainer.new()
@@ -465,6 +478,12 @@ func _build_function_bar(root: Control) -> void:
 	)
 	dock_row.add_child(city_tab_button)
 
+	assets_tab_button = _make_dock_icon_button("money", "我的资产")
+	assets_tab_button.pressed.connect(func() -> void:
+		_set_function_tab("assets")
+	)
+	dock_row.add_child(assets_tab_button)
+
 	tasks_tab_button = _make_dock_icon_button("tasks", "今日目标")
 	tasks_tab_button.pressed.connect(func() -> void:
 		_set_function_tab("tasks")
@@ -554,6 +573,13 @@ func _build_function_bar(root: Control) -> void:
 	city_summary_label = _make_label("", 12, Color("#d5cabd"))
 	city_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	city_view.add_child(city_summary_label)
+
+	assets_view = VBoxContainer.new()
+	assets_view.add_theme_constant_override("separation", 6)
+	function_box.add_child(assets_view)
+	assets_summary_label = _make_label("", 12, Color("#d5cabd"))
+	assets_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	assets_view.add_child(assets_summary_label)
 
 	tasks_view = VBoxContainer.new()
 	tasks_view.add_theme_constant_override("separation", 6)
@@ -718,6 +744,7 @@ func _refresh_function_bar() -> void:
 	var showing_contacts := current_function_tab == "contacts"
 	var showing_inventory := current_function_tab == "inventory"
 	var showing_city := current_function_tab == "city"
+	var showing_assets := current_function_tab == "assets"
 	var showing_tasks := current_function_tab == "tasks"
 	if character_tab_button != null:
 		character_tab_button.button_pressed = showing_character
@@ -727,6 +754,8 @@ func _refresh_function_bar() -> void:
 		inventory_tab_button.button_pressed = showing_inventory
 	if city_tab_button != null:
 		city_tab_button.button_pressed = showing_city
+	if assets_tab_button != null:
+		assets_tab_button.button_pressed = showing_assets
 	if tasks_tab_button != null:
 		tasks_tab_button.button_pressed = showing_tasks
 	if function_bar_title != null:
@@ -736,6 +765,8 @@ func _refresh_function_bar() -> void:
 			function_bar_title.text = "联系人"
 		elif showing_city:
 			function_bar_title.text = "城市"
+		elif showing_assets:
+			function_bar_title.text = "资产"
 		elif showing_tasks:
 			function_bar_title.text = "目标"
 		else:
@@ -747,6 +778,8 @@ func _refresh_function_bar() -> void:
 			function_bar_hint.text = "每天和居民聊一次，慢慢建立关系。"
 		elif showing_city:
 			function_bar_hint.text = "查看当前区域、住处和通勤成本。"
+		elif showing_assets:
+			function_bar_hint.text = "查看地皮、公司、城市阶段资产和历史资产。"
 		elif showing_tasks:
 			function_bar_hint.text = "简短目标会提示今天最该处理的事。"
 		else:
@@ -759,12 +792,15 @@ func _refresh_function_bar() -> void:
 		inventory_view.visible = showing_inventory
 	if city_view != null:
 		city_view.visible = showing_city
+	if assets_view != null:
+		assets_view.visible = showing_assets
 	if tasks_view != null:
 		tasks_view.visible = showing_tasks
 	_refresh_character_view()
 	_refresh_contacts_view()
 	_refresh_inventory_view()
 	_refresh_city_view()
+	_refresh_assets_view()
 	_refresh_tasks_view()
 	_refresh_function_bar_message()
 
@@ -896,6 +932,55 @@ func _build_company_text() -> String:
 		lines.append("- %s  每日 +%d" % [str(company.get("name", "公司")), int(company.get("daily_income", 0))])
 	return "\n".join(lines)
 
+
+func _build_city_growth_asset_text() -> String:
+	var assets: Array = function_status.get("owned_city_growth_assets", [])
+	if assets.is_empty():
+		return "- 暂无。城市声望达到15后开始解锁。"
+	var lines: PackedStringArray = PackedStringArray()
+	for asset_variant in assets:
+		var asset: Dictionary = asset_variant
+		lines.append("- %s  每日 +%d / 工资 +%d" % [
+			str(asset.get("name", "城市阶段资产")),
+			int(asset.get("daily_income", 0)),
+			int(asset.get("wage_bonus", 0)),
+		])
+	return "\n".join(lines)
+
+func _build_historical_asset_text() -> String:
+	var assets: Array = function_status.get("owned_historical_assets", [])
+	if assets.is_empty():
+		return "- 暂无。完成历史地图长任务线后解锁。"
+	var lines: PackedStringArray = PackedStringArray()
+	for asset_variant in assets:
+		var asset: Dictionary = asset_variant
+		lines.append("- %s  每日 +%d / 声望 +%d" % [
+			str(asset.get("name", "历史资产")),
+			int(asset.get("daily_income", 0)),
+			int(asset.get("daily_reputation", 0)),
+		])
+	return "\n".join(lines)
+
+
+func _refresh_assets_view() -> void:
+	if assets_summary_label == null:
+		return
+	var company_income: int = int(function_status.get("company_daily_income", 0))
+	var city_growth_income: int = int(function_status.get("city_growth_asset_daily_income", 0))
+	var historical_income: int = int(function_status.get("historical_asset_daily_income", 0))
+	var total_income: int = company_income + city_growth_income + historical_income
+	assets_summary_label.text = "我的资产\n昨日总被动收入 %d\n- 公司经营 +%d\n- 城市阶段资产 +%d\n- 历史资产 +%d\n\n地皮\n%s\n\n公司\n%s\n\n城市阶段资产\n%s\n\n历史资产\n%s" % [
+		total_income,
+		company_income,
+		city_growth_income,
+		historical_income,
+		_build_land_text(),
+		_build_company_text(),
+		_build_city_growth_asset_text(),
+		_build_historical_asset_text(),
+	]
+
+
 func _refresh_city_view() -> void:
 	if city_summary_label == null:
 		return
@@ -908,7 +993,9 @@ func _refresh_city_view() -> void:
 	var reputation_label: String = str(function_status.get("reputation_label", "无人认识"))
 	var city_reputation_text: String = _build_city_reputation_text()
 	var company_income: int = int(function_status.get("company_daily_income", 0))
-	city_summary_label.text = "区域 %s\n住处 %s\n通勤成本 %d / 体力 -%d / 压力 +%d\n住处影响 %s\n总声望 %d（%s）\n城市声望\n%s\n地皮\n%s\n公司\n%s\n昨日经营收入 %d\n去房产中介可以购买地皮、开办公司。" % [
+	var city_growth_income: int = int(function_status.get("city_growth_asset_daily_income", 0))
+	var historical_income: int = int(function_status.get("historical_asset_daily_income", 0))
+	city_summary_label.text = "区域 %s\n住处 %s\n通勤成本 %d / 体力 -%d / 压力 +%d\n住处影响 %s\n总声望 %d（%s）\n城市声望\n%s\n城市阶段资产\n%s\n地皮\n%s\n公司\n%s\n昨日经营收入 %d / 阶段资产收入 %d\n去房产中介可以购买地皮、开办公司。" % [
 		_get_scene_label(minimap_scene_key),
 		housing_text,
 		commute_fare,
@@ -918,9 +1005,15 @@ func _refresh_city_view() -> void:
 		reputation,
 		reputation_label,
 		city_reputation_text,
+		_build_city_growth_asset_text(),
 		_build_land_text(),
 		_build_company_text(),
 		company_income,
+		city_growth_income,
+	]
+	city_summary_label.text += "\n历史资产\n%s\n历史资产昨日收入 %d" % [
+		_build_historical_asset_text(),
+		historical_income,
 	]
 
 
@@ -937,7 +1030,7 @@ func _build_city_reputation_text() -> String:
 func _refresh_tasks_view() -> void:
 	if tasks_summary_label == null:
 		return
-	tasks_summary_label.text = _build_goals_text(function_status)
+	tasks_summary_label.text = _build_task_tracker_text(function_status, false)
 
 
 func _refresh_function_bar_message() -> void:
@@ -952,14 +1045,19 @@ func _refresh_function_bar_message() -> void:
 		function_bar_message.text = "联系人系统很轻量，但有用：聊天会影响压力，也会带来后续帮助。"
 	elif current_function_tab == "city":
 		function_bar_message.text = "当前城市声望会解锁当地地皮和公司。换城市后，需要重新建立本地口碑。"
+	elif current_function_tab == "assets":
+		function_bar_message.text = "资产页汇总所有长期收益：城市阶段资产、公司、历史资产会在每天早晨结算。"
 	elif current_function_tab == "tasks":
-		function_bar_message.text = "目标只是提示，不是任务清单。它会指向下一件有用的事。"
+		function_bar_message.text = "任务追踪会优先显示当前主目标，再显示历史线、城市发展和生存提醒。"
 	elif current_function_tab == "closed":
 		function_bar_message.text = ""
 	else:
 		function_bar_message.text = "打开前两个功能，可以查看角色状态和背包。"
 
 func _build_goals_text(status: Dictionary) -> String:
+	var tracker_text: String = _build_task_tracker_text(status, true)
+	if not tracker_text.is_empty():
+		return tracker_text
 	var goals := PackedStringArray()
 	var rent_due_in: int = int(status.get("rent_due_in", 7))
 	var rent_overdue: int = int(status.get("rent_overdue_days", 0))
@@ -1008,6 +1106,66 @@ func _build_goals_text(status: Dictionary) -> String:
 	for i in range(min(3, goals.size())):
 		selected.append(goals[i])
 	return "今日\n%s" % "\n".join(selected)
+
+
+func _build_task_tracker_text(status: Dictionary, compact: bool) -> String:
+	var tracker: Dictionary = status.get("task_tracker", {})
+	if tracker.is_empty():
+		return ""
+	var main: Dictionary = tracker.get("main", {})
+	var lines: PackedStringArray = PackedStringArray()
+	if not main.is_empty():
+		lines.append("任务追踪")
+		lines.append(_format_task_entry(main, true))
+	if compact:
+		var city_entries: Array = tracker.get("city", [])
+		if not city_entries.is_empty():
+			var city_entry: Dictionary = city_entries[0]
+			lines.append(_format_task_entry(city_entry, false))
+		var survival_entries: Array = tracker.get("survival", [])
+		if not survival_entries.is_empty():
+			var survival_entry: Dictionary = survival_entries[0]
+			lines.append(_format_task_entry(survival_entry, false))
+		return "\n".join(_limit_task_lines(lines, 7))
+	lines.append("")
+	lines.append("历史长线")
+	var history_entries: Array = tracker.get("history", [])
+	_append_task_section(lines, history_entries, 3)
+	lines.append("")
+	lines.append("城市发展")
+	var development_entries: Array = tracker.get("city", [])
+	_append_task_section(lines, development_entries, 3)
+	lines.append("")
+	lines.append("生活提醒")
+	var survival_section_entries: Array = tracker.get("survival", [])
+	_append_task_section(lines, survival_section_entries, 3)
+	return "\n".join(lines)
+
+
+func _append_task_section(lines: PackedStringArray, entries: Array, limit: int) -> void:
+	if entries.is_empty():
+		lines.append("- 暂无。")
+		return
+	for i in range(min(limit, entries.size())):
+		var entry: Dictionary = entries[i]
+		lines.append(_format_task_entry(entry, false))
+
+
+func _format_task_entry(entry: Dictionary, detailed: bool) -> String:
+	var tag: String = str(entry.get("tag", "目标"))
+	var title: String = str(entry.get("title", "目标"))
+	var objective: String = str(entry.get("objective", "继续探索。"))
+	var reward: String = str(entry.get("reward", ""))
+	if detailed and not reward.is_empty():
+		return "[%s] %s\n- %s\n- %s" % [tag, title, objective, reward]
+	return "[%s] %s\n- %s" % [tag, title, objective]
+
+
+func _limit_task_lines(lines: PackedStringArray, max_lines: int) -> PackedStringArray:
+	var selected: PackedStringArray = PackedStringArray()
+	for i in range(min(max_lines, lines.size())):
+		selected.append(lines[i])
+	return selected
 
 func _get_scene_label(scene_key: String) -> String:
 	match scene_key:

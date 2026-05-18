@@ -206,6 +206,78 @@ func _create_interactables() -> void:
 			"fill_color": Color(0.86, 0.64, 0.38, 0.18),
 			"border_color": Color("#e8c879"),
 		})
+	if map_id == "republic_shanghai":
+		_add_interactable({
+			"id": "republic_companion_writer",
+			"name": "报馆女作者",
+			"kind": "historical_companion",
+			"prompt": "按 E 结识",
+			"position": _tile_center(Vector2i(7, 13)),
+			"size": Vector2(100, 36),
+			"fill_color": Color(0.78, 0.55, 0.62, 0.22),
+			"border_color": Color("#ffc4d6"),
+		})
+		_add_interactable({
+			"id": "republic_companion_singer",
+			"name": "爵士歌者",
+			"kind": "historical_companion",
+			"prompt": "按 E 结识",
+			"position": _tile_center(Vector2i(15, 16)),
+			"size": Vector2(100, 36),
+			"fill_color": Color(0.78, 0.55, 0.62, 0.22),
+			"border_color": Color("#ffc4d6"),
+		})
+	else:
+		_add_interactable({
+			"id": "artifact_tang_sancai",
+			"name": "唐三彩碎片",
+			"kind": "historical_collectible",
+			"prompt": "按 E 采集文物",
+			"position": _tile_center(Vector2i(6, 12)),
+			"size": Vector2(96, 34),
+			"fill_color": Color(0.72, 0.58, 0.38, 0.22),
+			"border_color": Color("#e8c879"),
+		})
+		_add_interactable({
+			"id": "artifact_bronze_mirror",
+			"name": "铜镜残片",
+			"kind": "historical_collectible",
+			"prompt": "按 E 采集文物",
+			"position": _tile_center(Vector2i(18, 15)),
+			"size": Vector2(96, 34),
+			"fill_color": Color(0.72, 0.58, 0.38, 0.22),
+			"border_color": Color("#e8c879"),
+		})
+		_add_interactable({
+			"id": "artifact_changan_tile",
+			"name": "长安瓦当",
+			"kind": "historical_collectible",
+			"prompt": "按 E 采集文物",
+			"position": _tile_center(Vector2i(25, 10)),
+			"size": Vector2(96, 34),
+			"fill_color": Color(0.72, 0.58, 0.38, 0.22),
+			"border_color": Color("#e8c879"),
+		})
+		_add_interactable({
+			"id": "artifact_market_token",
+			"name": "西市铜筹",
+			"kind": "historical_collectible",
+			"prompt": "按 E 采集文物",
+			"position": _tile_center(Vector2i(9, 18)),
+			"size": Vector2(96, 34),
+			"fill_color": Color(0.72, 0.58, 0.38, 0.22),
+			"border_color": Color("#e8c879"),
+		})
+		_add_interactable({
+			"id": "tang_companion_scholar",
+			"name": "女史学者",
+			"kind": "historical_companion",
+			"prompt": "按 E 结识",
+			"position": _tile_center(Vector2i(17, 5)),
+			"size": Vector2(96, 34),
+			"fill_color": Color(0.78, 0.55, 0.62, 0.22),
+			"border_color": Color("#ffc4d6"),
+		})
 
 
 func _get_landmarks() -> Array[Dictionary]:

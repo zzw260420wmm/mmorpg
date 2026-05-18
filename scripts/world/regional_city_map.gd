@@ -104,9 +104,41 @@ func set_weather(weather_key: String) -> void:
 
 
 func _draw() -> void:
+	_draw_life_loop_markers()
 	_draw_station_canopy()
 	if current_weather == "rain":
 		_draw_rain_puddles()
+
+
+func _draw_life_loop_markers() -> void:
+	var station := get_station_position()
+	_draw_life_marker(station + Vector2(-260, 210), "住", Color("#e8c879"), Color("#4b3724"))
+	_draw_life_marker(station + Vector2(260, 190), "工", Color("#a9d7ff"), Color("#243849"))
+	_draw_life_marker(station + Vector2(0, 270), "委", Color("#c4d8a8"), Color("#33452d"))
+
+
+func _draw_life_marker(center: Vector2, glyph: String, accent: Color, body: Color) -> void:
+	var base := Rect2(center - Vector2(30, 26), Vector2(60, 52))
+	draw_rect(base.grow(4), Color(0.06, 0.05, 0.04, 0.22))
+	draw_rect(base, body)
+	draw_rect(base, accent, false, 3.0)
+	draw_rect(Rect2(base.position + Vector2(8, 9), Vector2(44, 24)), Color(1.0, 0.92, 0.72, 0.16))
+	_draw_marker_glyph(center + Vector2(-9, -12), glyph, accent)
+
+
+func _draw_marker_glyph(pos: Vector2, glyph: String, color: Color) -> void:
+	if glyph == "住":
+		draw_rect(Rect2(pos + Vector2(0, 10), Vector2(18, 14)), color)
+		draw_polygon(PackedVector2Array([pos + Vector2(-2, 10), pos + Vector2(9, 0), pos + Vector2(20, 10)]), PackedColorArray([color]))
+	elif glyph == "工":
+		draw_rect(Rect2(pos + Vector2(0, 1), Vector2(18, 4)), color)
+		draw_rect(Rect2(pos + Vector2(7, 5), Vector2(4, 17)), color)
+		draw_rect(Rect2(pos + Vector2(0, 22), Vector2(18, 4)), color)
+	else:
+		draw_rect(Rect2(pos + Vector2(1, 0), Vector2(16, 22)), color)
+		draw_rect(Rect2(pos + Vector2(5, 5), Vector2(8, 2)), Color("#33452d"))
+		draw_rect(Rect2(pos + Vector2(5, 11), Vector2(8, 2)), Color("#33452d"))
+		draw_rect(Rect2(pos + Vector2(5, 17), Vector2(6, 2)), Color("#33452d"))
 
 
 func _create_tile_map() -> void:
@@ -205,10 +237,7 @@ func _paint_station() -> void:
 	if city_id == "changchun":
 		_paint_changchun_station_and_qikai_portal()
 		return
-	_paint_rect(station_tile + Vector2i(-3, -2), Vector2i(7, 4), T_PAVEMENT)
-	_paint_rect(station_tile + Vector2i(-3, -3), Vector2i(7, 1), T_OFFICE_ROOF)
-	_paint_rect(station_tile + Vector2i(-3, -2), Vector2i(7, 2), T_GLASS_TOWER)
-	_paint_rect(station_tile + Vector2i(-2, 0), Vector2i(5, 1), T_WINDOW_WALL)
+	_paint_station_cluster(station_tile + Vector2i(-3, -3))
 	_set_tile(station_tile.x, station_tile.y + 1, T_METRO_ENTRY)
 	_set_tile(station_tile.x - 1, station_tile.y + 2, T_STREET_LAMP)
 	_set_tile(station_tile.x + 1, station_tile.y + 2, T_STREET_LAMP)
@@ -218,31 +247,41 @@ func _paint_station() -> void:
 
 func _paint_changchun_station_and_qikai_portal() -> void:
 	var station_origin := _get_changchun_tile("west_station") + Vector2i(-3, -2)
-	_paint_rect(station_origin, Vector2i(7, 4), T_PAVEMENT)
-	_paint_rect(station_origin + Vector2i(0, -1), Vector2i(7, 1), T_OFFICE_ROOF)
-	_paint_rect(station_origin, Vector2i(7, 2), T_GLASS_TOWER)
-	_paint_rect(station_origin + Vector2i(1, 2), Vector2i(5, 1), T_WINDOW_WALL)
+	_paint_station_cluster(station_origin + Vector2i(0, -1))
 	_set_tile(station_origin.x + 3, station_origin.y + 3, T_METRO_ENTRY)
 	_set_tile(station_origin.x + 1, station_origin.y + 4, T_STREET_LAMP)
 	_set_tile(station_origin.x + 5, station_origin.y + 4, T_STREET_LAMP)
 	_paint_qikai_district_portal()
 
 
+func _paint_station_cluster(origin: Vector2i) -> void:
+	_paint_rect(origin + Vector2i(0, 3), Vector2i(7, 2), T_PAVEMENT)
+	_paint_building_unit(origin, Vector2i(2, 2), T_OFFICE_ROOF, T_GLASS_TOWER)
+	_paint_building_unit(origin + Vector2i(3, 0), Vector2i(2, 2), T_OFFICE_ROOF, T_GLASS_TOWER)
+	_paint_building_unit(origin + Vector2i(6, 0), Vector2i(1, 2), T_OFFICE_ROOF, T_WINDOW_WALL)
+
+
 func _paint_city_blocks() -> void:
 	var blocks: Array[Dictionary] = [
-		{"origin": Vector2i(4, 4), "size": Vector2i(5, 4), "roof": T_RES_ROOF, "wall": T_RES_WALL},
-		{"origin": Vector2i(6, 15), "size": Vector2i(5, 4), "roof": T_RES_ROOF, "wall": T_STOREFRONT},
-		{"origin": Vector2i(24, 5), "size": Vector2i(6, 5), "roof": T_OFFICE_ROOF, "wall": T_OFFICE_WALL},
-		{"origin": Vector2i(25, 16), "size": Vector2i(5, 4), "roof": T_OFFICE_ROOF, "wall": T_GLASS_TOWER},
+		{"origin": Vector2i(4, 4), "size": Vector2i(2, 2), "roof": T_RES_ROOF, "wall": T_RES_WALL},
+		{"origin": Vector2i(7, 4), "size": Vector2i(1, 2), "roof": T_RES_ROOF, "wall": T_RES_WALL},
+		{"origin": Vector2i(6, 15), "size": Vector2i(2, 1), "roof": T_SHOP_ROOF, "wall": T_STOREFRONT},
+		{"origin": Vector2i(9, 15), "size": Vector2i(2, 2), "roof": T_SHOP_ROOF, "wall": T_SHOP_WALL},
+		{"origin": Vector2i(24, 5), "size": Vector2i(2, 2), "roof": T_OFFICE_ROOF, "wall": T_OFFICE_WALL},
+		{"origin": Vector2i(27, 5), "size": Vector2i(2, 2), "roof": T_OFFICE_ROOF, "wall": T_GLASS_TOWER},
+		{"origin": Vector2i(25, 16), "size": Vector2i(2, 2), "roof": T_OFFICE_ROOF, "wall": T_GLASS_TOWER},
+		{"origin": Vector2i(28, 16), "size": Vector2i(1, 2), "roof": T_OFFICE_ROOF, "wall": T_OFFICE_WALL},
 	]
 	if city_id == "hangzhou":
 		_paint_rect(Vector2i(0, 18), Vector2i(map_columns, 3), T_RIVER)
 	if city_id == "chengdu":
-		blocks.append({"origin": Vector2i(3, 10), "size": Vector2i(4, 3), "roof": T_RES_ROOF, "wall": T_STOREFRONT})
+		blocks.append({"origin": Vector2i(3, 10), "size": Vector2i(2, 1), "roof": T_RES_ROOF, "wall": T_STOREFRONT})
+		blocks.append({"origin": Vector2i(6, 10), "size": Vector2i(1, 2), "roof": T_RES_ROOF, "wall": T_STOREFRONT})
 	if city_id == "xian":
 		_paint_rect(Vector2i(1, 2), Vector2i(map_columns - 2, 1), T_BUILDING_SHADOW)
 	if city_id == "changchun":
-		blocks.append({"origin": Vector2i(27, 11), "size": Vector2i(4, 4), "roof": T_RES_ROOF, "wall": T_WINDOW_WALL})
+		blocks.append({"origin": Vector2i(27, 11), "size": Vector2i(2, 2), "roof": T_RES_ROOF, "wall": T_WINDOW_WALL})
+		blocks.append({"origin": Vector2i(30, 11), "size": Vector2i(1, 2), "roof": T_RES_ROOF, "wall": T_WINDOW_WALL})
 	for block_index in range(blocks.size()):
 		var block: Dictionary = blocks[block_index]
 		_paint_building(block)
@@ -269,32 +308,33 @@ func _paint_landmarks() -> void:
 
 
 func _paint_landmark_palace(origin: Vector2i) -> void:
-	_paint_rect(origin, Vector2i(5, 1), T_RES_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(5, 2), T_WINDOW_WALL)
-	_set_tile(origin.x + 2, origin.y + 3, T_STOREFRONT)
+	_paint_building_unit(origin, Vector2i(2, 2), T_RES_ROOF, T_WINDOW_WALL)
+	_paint_building_unit(origin + Vector2i(3, 0), Vector2i(2, 2), T_RES_ROOF, T_WINDOW_WALL)
+	_set_tile(origin.x + 2, origin.y + 2, T_STOREFRONT)
 	_set_tile(origin.x - 1, origin.y + 2, T_TREE)
 	_set_tile(origin.x + 5, origin.y + 2, T_TREE)
 
 
 func _paint_landmark_studio(origin: Vector2i) -> void:
-	_paint_rect(origin, Vector2i(4, 1), T_OFFICE_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(4, 2), T_GLASS_TOWER)
-	_set_tile(origin.x + 1, origin.y + 3, T_STOREFRONT)
+	_paint_building_unit(origin, Vector2i(2, 2), T_OFFICE_ROOF, T_GLASS_TOWER)
+	_paint_building_unit(origin + Vector2i(3, 0), Vector2i(1, 2), T_OFFICE_ROOF, T_GLASS_TOWER)
+	_set_tile(origin.x + 1, origin.y + 2, T_STOREFRONT)
 	_set_tile(origin.x + 3, origin.y + 3, T_STREET_LAMP)
 
 
 func _paint_landmark_zheyoushan(origin: Vector2i) -> void:
-	_paint_rect(origin, Vector2i(5, 1), T_SHOP_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(5, 2), T_SHOP_WALL)
+	_paint_building_unit(origin, Vector2i(2, 2), T_SHOP_ROOF, T_SHOP_WALL)
+	_paint_building_unit(origin + Vector2i(3, 0), Vector2i(2, 2), T_SHOP_ROOF, T_SHOP_WALL)
 	_set_tile(origin.x + 2, origin.y + 3, T_TREE)
 	_set_tile(origin.x + 1, origin.y + 4, T_STOREFRONT)
 	_set_tile(origin.x + 3, origin.y + 4, T_STREET_LAMP)
 
 
 func _paint_landmark_eurasia_market(origin: Vector2i) -> void:
-	_paint_rect(origin, Vector2i(7, 1), T_SHOP_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(7, 3), T_SHOP_WALL)
-	_set_tile(origin.x + 3, origin.y + 4, T_STOREFRONT)
+	_paint_building_unit(origin, Vector2i(2, 2), T_SHOP_ROOF, T_SHOP_WALL)
+	_paint_building_unit(origin + Vector2i(3, 0), Vector2i(2, 2), T_SHOP_ROOF, T_SHOP_WALL)
+	_paint_building_unit(origin + Vector2i(6, 0), Vector2i(1, 2), T_SHOP_ROOF, T_SHOP_WALL)
+	_set_tile(origin.x + 3, origin.y + 2, T_STOREFRONT)
 	_set_tile(origin.x + 1, origin.y + 4, T_STREET_LAMP)
 	_set_tile(origin.x + 5, origin.y + 4, T_STREET_LAMP)
 
@@ -309,17 +349,16 @@ func _paint_landmark_zoo(origin: Vector2i) -> void:
 
 
 func _paint_landmark_animation_institute(origin: Vector2i) -> void:
-	_paint_rect(origin, Vector2i(6, 1), T_OFFICE_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(6, 3), T_MEDIA_WALL)
-	_set_tile(origin.x + 2, origin.y + 4, T_STOREFRONT)
+	_paint_building_unit(origin, Vector2i(2, 2), T_OFFICE_ROOF, T_MEDIA_WALL)
+	_paint_building_unit(origin + Vector2i(3, 0), Vector2i(2, 2), T_OFFICE_ROOF, T_MEDIA_WALL)
+	_set_tile(origin.x + 2, origin.y + 2, T_STOREFRONT)
 	_set_tile(origin.x + 4, origin.y + 4, T_STREET_LAMP)
 	_set_tile(origin.x + 5, origin.y, T_ROOF_AC)
 
 
 func _paint_landmark_bell_tower(origin: Vector2i) -> void:
 	_set_tile(origin.x + 1, origin.y, T_RES_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(3, 1), T_OFFICE_ROOF)
-	_paint_rect(origin + Vector2i(0, 2), Vector2i(3, 2), T_WINDOW_WALL)
+	_paint_building_unit(origin + Vector2i(0, 1), Vector2i(2, 2), T_OFFICE_ROOF, T_WINDOW_WALL)
 	_set_tile(origin.x + 1, origin.y + 4, T_STOREFRONT)
 	_set_tile(origin.x, origin.y + 5, T_PAVEMENT)
 	_set_tile(origin.x + 1, origin.y + 5, T_PAVEMENT)
@@ -328,13 +367,15 @@ func _paint_landmark_bell_tower(origin: Vector2i) -> void:
 
 func _paint_landmark_city_wall(origin: Vector2i) -> void:
 	_paint_rect(origin, Vector2i(7, 1), T_BUILDING_SHADOW)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(7, 1), T_RES_WALL)
+	for i in range(4):
+		_paint_building_unit(origin + Vector2i(i * 2, 1), Vector2i(2, 1), T_RES_ROOF, T_RES_WALL)
 	_set_tile(origin.x, origin.y + 2, T_RES_ROOF)
 	_set_tile(origin.x + 6, origin.y + 2, T_RES_ROOF)
 
 
 func _paint_landmark_panda_tower(origin: Vector2i) -> void:
-	_paint_rect(origin + Vector2i(1, 0), Vector2i(2, 4), T_GLASS_TOWER)
+	_paint_building_unit(origin + Vector2i(1, 0), Vector2i(2, 2), T_OFFICE_ROOF, T_GLASS_TOWER)
+	_paint_building_unit(origin + Vector2i(1, 2), Vector2i(2, 2), T_OFFICE_ROOF, T_GLASS_TOWER)
 	_set_tile(origin.x, origin.y + 4, T_TREE)
 	_set_tile(origin.x + 1, origin.y + 4, T_STOREFRONT)
 	_set_tile(origin.x + 2, origin.y + 4, T_TREE)
@@ -342,16 +383,16 @@ func _paint_landmark_panda_tower(origin: Vector2i) -> void:
 
 
 func _paint_landmark_alley(origin: Vector2i) -> void:
-	_paint_rect(origin, Vector2i(6, 1), T_RES_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(6, 2), T_STOREFRONT)
+	_paint_building_unit(origin, Vector2i(2, 1), T_RES_ROOF, T_STOREFRONT)
+	_paint_building_unit(origin + Vector2i(3, 0), Vector2i(2, 1), T_RES_ROOF, T_STOREFRONT)
 	_set_tile(origin.x + 1, origin.y + 3, T_TREE)
 	_set_tile(origin.x + 4, origin.y + 3, T_TREE)
 
 
 func _paint_landmark_leifeng_tower(origin: Vector2i) -> void:
 	_set_tile(origin.x + 1, origin.y, T_RES_ROOF)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(3, 1), T_OFFICE_ROOF)
-	_paint_rect(origin + Vector2i(0, 2), Vector2i(3, 3), T_RES_WALL)
+	_paint_building_unit(origin + Vector2i(0, 1), Vector2i(2, 2), T_OFFICE_ROOF, T_RES_WALL)
+	_paint_building_unit(origin + Vector2i(1, 3), Vector2i(2, 2), T_OFFICE_ROOF, T_RES_WALL)
 	_set_tile(origin.x + 1, origin.y + 5, T_STOREFRONT)
 	_set_tile(origin.x - 1, origin.y + 4, T_TREE)
 	_set_tile(origin.x + 3, origin.y + 4, T_TREE)
@@ -366,8 +407,8 @@ func _paint_landmark_lakefront(origin: Vector2i) -> void:
 
 func _paint_qikai_district_portal() -> void:
 	var origin := _get_changchun_tile("qikai") + Vector2i(-2, -2)
-	_paint_rect(origin + Vector2i(-1, -1), Vector2i(5, 1), T_OFFICE_ROOF)
-	_paint_rect(origin + Vector2i(-1, 0), Vector2i(5, 2), T_OFFICE_WALL)
+	_paint_building_unit(origin + Vector2i(-1, -1), Vector2i(2, 2), T_OFFICE_ROOF, T_OFFICE_WALL)
+	_paint_building_unit(origin + Vector2i(2, -1), Vector2i(2, 2), T_OFFICE_ROOF, T_OFFICE_WALL)
 	_set_tile(origin.x + 1, origin.y + 2, T_STOREFRONT)
 	_set_tile(origin.x - 1, origin.y + 3, T_STREET_LAMP)
 	_set_tile(origin.x + 3, origin.y + 3, T_STREET_LAMP)
@@ -376,8 +417,9 @@ func _paint_qikai_district_portal() -> void:
 
 func _paint_tang_changan_portal() -> void:
 	var origin := Vector2i(17, 3)
-	_paint_rect(origin + Vector2i(-3, -1), Vector2i(7, 1), T_RES_ROOF)
-	_paint_rect(origin + Vector2i(-3, 0), Vector2i(7, 2), T_RES_WALL)
+	_paint_building_unit(origin + Vector2i(-3, -1), Vector2i(2, 2), T_RES_ROOF, T_RES_WALL)
+	_paint_building_unit(origin, Vector2i(2, 2), T_RES_ROOF, T_RES_WALL)
+	_paint_building_unit(origin + Vector2i(3, -1), Vector2i(1, 2), T_RES_ROOF, T_RES_WALL)
 	_set_tile(origin.x, origin.y + 2, T_STOREFRONT)
 	_set_tile(origin.x - 3, origin.y + 3, T_STREET_LAMP)
 	_set_tile(origin.x + 3, origin.y + 3, T_STREET_LAMP)
@@ -399,8 +441,14 @@ func _paint_building(block: Dictionary) -> void:
 	var size: Vector2i = block["size"]
 	var roof: Vector2i = block["roof"]
 	var wall: Vector2i = block["wall"]
+	_paint_building_unit(origin, size, roof, wall)
+
+
+func _paint_building_unit(origin: Vector2i, size: Vector2i, roof: Vector2i, wall: Vector2i) -> void:
+	size = Vector2i(clampi(size.x, 1, 2), clampi(size.y, 1, 2))
 	_paint_rect(origin, Vector2i(size.x, 1), roof)
-	_paint_rect(origin + Vector2i(0, 1), Vector2i(size.x, size.y - 1), wall)
+	if size.y > 1:
+		_paint_rect(origin + Vector2i(0, 1), Vector2i(size.x, size.y - 1), wall)
 	_set_tile(origin.x + int(size.x / 2), origin.y + size.y - 1, T_STOREFRONT)
 	_set_tile(origin.x + size.x - 1, origin.y, T_ROOF_AC)
 
@@ -450,8 +498,49 @@ func _create_interactables() -> void:
 		"border_color": Color("#a9d7ff"),
 	})
 	add_child(interactable)
+	_create_life_loop_interactables()
 	_create_landmark_interactables()
 	_create_city_portal_interactables()
+
+
+func _create_life_loop_interactables() -> void:
+	var station := get_station_position()
+	var configs: Array[Dictionary] = [
+		{
+			"id": "city_home_%s" % city_id,
+			"name": "%s local room" % city_name,
+			"kind": "city_home",
+			"prompt": "Press E to rest",
+			"position": station + Vector2(-260, 210),
+			"size": Vector2(96, 36),
+			"fill_color": Color(0.86, 0.68, 0.38, 0.22),
+			"border_color": Color("#e8c879"),
+		},
+		{
+			"id": "city_work_%s" % city_id,
+			"name": "%s day work" % city_name,
+			"kind": "city_work",
+			"prompt": "Press E to work",
+			"position": station + Vector2(260, 190),
+			"size": Vector2(104, 38),
+			"fill_color": Color(0.46, 0.62, 0.86, 0.22),
+			"border_color": Color("#a9d7ff"),
+		},
+		{
+			"id": "city_task_%s" % city_id,
+			"name": "%s task board" % city_name,
+			"kind": "city_task",
+			"prompt": "Press E for task",
+			"position": station + Vector2(0, 270),
+			"size": Vector2(112, 38),
+			"fill_color": Color(0.56, 0.72, 0.52, 0.20),
+			"border_color": Color("#c4d8a8"),
+		},
+	]
+	for config in configs:
+		var local_interactable: WorldInteractable = WorldInteractableScript.new()
+		local_interactable.configure(config)
+		add_child(local_interactable)
 
 
 func _create_landmark_interactables() -> void:
@@ -488,6 +577,30 @@ func _create_city_portal_interactables() -> void:
 		})
 		add_child(qikai_portal)
 	if city_id == "xian":
+		var museum: WorldInteractable = WorldInteractableScript.new()
+		museum.configure({
+			"id": "xian_private_museum",
+			"name": "私人博物馆",
+			"kind": "private_museum",
+			"prompt": "按 E 查看博物馆",
+			"position": _tile_center(Vector2i(22, 8)),
+			"size": Vector2(118, 40),
+			"fill_color": Color(0.72, 0.58, 0.38, 0.20),
+			"border_color": Color("#e8c879"),
+		})
+		add_child(museum)
+		var archaeology_board: WorldInteractable = WorldInteractableScript.new()
+		archaeology_board.configure({
+			"id": "xian_archaeology_board",
+			"name": "考古委托栏",
+			"kind": "archaeology_task",
+			"prompt": "按 E 接考古委托",
+			"position": _tile_center(Vector2i(20, 10)),
+			"size": Vector2(118, 40),
+			"fill_color": Color(0.56, 0.72, 0.52, 0.20),
+			"border_color": Color("#c4d8a8"),
+		})
+		add_child(archaeology_board)
 		var tang_portal: WorldInteractable = WorldInteractableScript.new()
 		tang_portal.configure({
 			"id": "xian_tang_changan_portal",

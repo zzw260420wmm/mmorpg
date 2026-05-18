@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://internet_cafe_interior"]
+
+[ext_resource type="Script" path="res://scripts/world/internet_cafe_interior.gd" id="1_cafe"]
+
+[node name="InternetCafeInterior" type="Node2D"]
+script = ExtResource("1_cafe")
